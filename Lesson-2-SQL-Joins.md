@@ -89,3 +89,29 @@ ON a.sales_rep_id = s.id
 JOIN orders o
 ON o.account_id = a.id;
 ```
+
+## Left and Right Joins
+
+An inner join will only return records that appear in both tables (or all of the tables) that you're working with. It will not return records that appear in one table, but not the other(s). But sometimes you want to be able to display records in your results that only appear in one of the tables you're working with. That's where LEFT and RIGHT joins come in.
+
+Here's an example:
+```sql
+SELECT a.id, a.name, o.total
+FROM orders o
+LEFT JOIN accounts a
+ON o.account_id = a.id
+```
+Here, we're selecting the id and name columns from the accounts table and the total column from the orders table. We're starting with the orders table (which we alias to o), and then LEFT JOIN the accounts table (which we alias to a). We join these tables ON the order table's account_id column (a foreign key in orders) and the accounts table's id column (the primary key in accounts). In this particular case, the inner join and the left join produce the exact same results.
+
+However, the results will be different if we use a RIGHT JOIN, like this:
+```sql
+SELECT a.id, a.name, o.total
+FROM orders o
+RIGHT JOIN accounts a
+ON o.account_id = a.id
+```
+Here, again, we're selecting the id and name columns from the accounts table and the total column from the orders table. We're starting with the orders table (which we alias to o), and then RIGHT JOIN the accounts table (which we alias to a). We join these tables ON the order table's account_id column (a foreign key in orders) and the accounts table's id column (the primary key in accounts). Now the results that we get back from the query have changed. We can now see account ids that 
+
+### What makes the orders table the left table in a Venn diagram of the two tables?
+The orders table is the left hand part of the diagram because it is the table that appears in the FROM clause. The orders table contains the foreign key.
+
