@@ -110,8 +110,9 @@ FROM orders o
 RIGHT JOIN accounts a
 ON o.account_id = a.id
 ```
-Here, again, we're selecting the id and name columns from the accounts table and the total column from the orders table. We're starting with the orders table (which we alias to o), and then RIGHT JOIN the accounts table (which we alias to a). We join these tables ON the order table's account_id column (a foreign key in orders) and the accounts table's id column (the primary key in accounts). Now the results that we get back from the query have changed. We can now see account ids that 
+Here, again, we're selecting the id and name columns from the accounts table and the total column from the orders table. We're starting with the orders table (which we alias to o), and then RIGHT JOIN the accounts table (which we alias to a). We join these tables ON the order table's account_id column (a foreign key in orders) and the accounts table's id column (the primary key in accounts). Now the results that we get back from the query have changed. We can now see account ids and names that do not have any corresponding orders. Any columns that we get from the orders table will contain no data for these rows in our results.
 
 ### What makes the orders table the left table in a Venn diagram of the two tables?
-The orders table is the left hand part of the diagram because it is the table that appears in the FROM clause. The orders table contains the foreign key.
+The orders table is the left hand part of the diagram because it is the table that appears in the FROM clause. You can switch things around and use accounts in the FROM clause, and in that case, accounts will now be the left hand part of the diagram and orders will be the right hand part. By convention, programmers generally use LEFT JOINs and do not use RIGHT JOINs. They just arrange the FROM clause as needed.
+
 
