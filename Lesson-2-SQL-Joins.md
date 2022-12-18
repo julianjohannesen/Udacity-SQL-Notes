@@ -120,3 +120,123 @@ In the Udacity course, the course designers generally use LEFT JOINs and do not 
 ### Outer Joins
 An OUTER JOIN, also called a FULL OUTER JOIN, is a join that will return rows from the inner join result, and also rows from either of the tables being joined. This join is used rarely.
 
+### Joins and Filtering
+You can sometimes accomplish the same thing by either putting logic in the ON clause or by using a WHERE clause. Logic in the ON clause reduces the rows before combining the tables, whereas logic in the WHERE clause occurs after the join occurs. Put another way, when the database executes a query, it executes the join and everything in the ON clause first. Think of this as building the new result set. That result set is then filtered using the WHERE clause. So, these two statements produce the same results, but in different ways:
+```sql
+SELECT orders.*, accounts.*
+FROM orders
+LEFT JOIN accounts
+ON orders.account_id = accounts.id 
+WHERE accounts.sales_rep_id = 321500
+```
+Here, we SELECT all columns from both the orders and accounts tables. We start FROM the orders table and LEFT JOIN the accounts table ON the orders table's account_id (a foregin key in orders) and the accounts table's id (the primary key in accounts). We then filter for results WHERE the accounts table's sales_rep_id is 321500. The results show all of Tamara Tuma's accounts and sales.
+
+Here's another way to get the same results by putting the logic in the ON clause:
+```sql
+SELECT orders.*, accounts.*
+FROM orders
+LEFT JOIN accounts
+ON orders.account_id = accounts.id 
+AND accounts.sales_rep_id = 321500
+```
+Here, we're selecting the same columns from the same tables as above, but instead of filtering the joined tables with a WHERE clause, we're adding another clause to the ON clause, specifying that we want only the join that has orders.acount_id = accounts.id AND accounts.sales_rep_id = 321500.
+
+### Sample problems from section 19
+
+Problem 1. Provide a table that provides the region for each sales_rep along with their associated accounts. This time only for the Midwest region. Your final table should include three columns: the region name, the sales rep name, and the account name. Sort the accounts alphabetically (A-Z) according to the account name.
+```sql
+select r.name as rname, sr.name as srname, a.name as aname
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+and r.name = 'Midwest'
+join accounts a
+on a.sales_rep_id = sr.id
+```
+
+Problem 2. Provide a table that provides the region for each sales_rep along with their associated accounts. This time only for accounts where the sales rep has a first name starting with S and in the Midwest region. Your final table should include three columns: the region name, the sales rep name, and the account name. Sort the accounts alphabetically (A-Z) according to the account name.
+```sql
+select r.name as rname, sr.name as srname, a.name as aname
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+and r.name = 'Midwest'
+join accounts a
+on a.sales_rep_id = sr.id
+and sr.name like 'S%'
+order by a.name
+```
+
+Problem 3. Provide a table that provides the region for each sales_rep along with their associated accounts. This time only for accounts where the sales rep has a last name starting with K and in the Midwest region. Your final table should include three columns: the region name, the sales rep name, and the account name. Sort the accounts alphabetically (A-Z) according to the account name.
+```sql
+select r.name as rname, sr.name as srname, a.name as aname
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+and r.name = 'Midwest'
+join accounts a
+on a.sales_rep_id = sr.id
+and sr.name like '% K%'
+order by a.name
+```
+
+Problem 4. Provide the name for each region for every order, as well as the account name and the unit price they paid (total_amt_usd/total) for the order. However, you should only provide the results if the standard order quantity exceeds 100. Your final table should have 3 columns: region name, account name, and unit price. In order to avoid a division by zero error, adding .01 to the denominator here is helpful total_amt_usd/(total+0.01).
+```sql
+select r.name, a.name, o.total_amt_usd/(o.total + 0.01) as unit_price
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+join accounts a
+on a.sales_rep_id = sr.id
+join orders o
+on o.account_id = a.id 
+and o.standard_qty > 100
+```
+
+Problem 5. Provide the name for each region for every order, as well as the account name and the unit price they paid (total_amt_usd/total) for the order. However, you should only provide the results if the standard order quantity exceeds 100 and the poster order quantity exceeds 50. Your final table should have 3 columns: region name, account name, and unit price. Sort for the smallest unit price first. In order to avoid a division by zero error, adding .01 to the denominator here is helpful (total_amt_usd/(total+0.01).
+```sql
+select r.name as rname, a.name as aname, o.total_amt_usd/(o.total + 0.01) as unit_price
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+join accounts a
+on a.sales_rep_id = sr.id
+join orders o
+on o.account_id = a.id
+and o.standard_qty > 100
+and poster_qty > 50
+```
+
+Problem 6. Provide the name for each region for every order, as well as the account name and the unit price they paid (total_amt_usd/total) for the order. However, you should only provide the results if the standard order quantity exceeds 100 and the poster order quantity exceeds 50. Your final table should have 3 columns: region name, account name, and unit price. Sort for the largest unit price first. In order to avoid a division by zero error, adding .01 to the denominator here is helpful (total_amt_usd/(total+0.01).
+```sql
+select r.name as rname, a.name as aname, o.total_amt_usd/(o.total + 0.01) as unit_price
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+join accounts a
+on a.sales_rep_id = sr.id
+join orders o
+on o.account_id = a.id
+and o.standard_qty > 100
+and poster_qty > 50
+order by unit_price desc
+```
+
+Problem 7. What are the different channels used by account id 1001? Your final table should have only 2 columns: account name and the different channels. You can try SELECT DISTINCT to narrow down the results to only the unique values.
+```sql
+select distinct we.channel, a.name
+from web_events we
+join accounts a
+on we.account_id = a.id
+and a.id = '1001'
+```
+
+Problem 8. Find all the orders that occurred in 2015. Your final table should have 4 columns: occurred_at, account name, order total, and order total_amt_usd.
+```sql
+select o.occurred_at, a.name, o.total, o.total_amt_usd
+from accounts a
+join orders o
+on o.account_id = a.id
+where o.occurred_at between '01-01-2015' and '01-01-2016'
+order by o.occurred_at desc
+```
