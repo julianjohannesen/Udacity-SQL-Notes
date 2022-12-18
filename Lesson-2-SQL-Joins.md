@@ -90,9 +90,9 @@ JOIN orders o
 ON o.account_id = a.id;
 ```
 
-## Left and Right Joins
+### Left and Right Joins
 
-An inner join will only return records that appear in both tables (or all of the tables) that you're working with. It will not return records that appear in one table, but not the other(s). But sometimes you want to be able to display records in your results that only appear in one of the tables you're working with. That's where LEFT and RIGHT joins come in.
+An inner join will only return records that appear in both tables (or all of the tables) that you're working with. It will not return records that appear in one table, but not the other(s). But sometimes you want to be able to display records in your results that only appear in one of the tables you're working with. That's where LEFT and RIGHT joins come in. Note that these joins are sometimes referred to as the LEFT OUTER JOIN and RIGHT OUTER JOIN. 
 
 Here's an example:
 ```sql
@@ -117,4 +117,6 @@ The orders table is the left hand part of the diagram because it is the table th
 
 In the Udacity course, the course designers generally use LEFT JOINs and do not use RIGHT JOINs. They just arrange the FROM clause as needed. So, in the example above, instead of using a RIGHT JOIN in order to be able see Goldman Sachs Group in our query results, you would use a LEFT JOIN and just put accounts in the FROM clause and orders in the JOIN clause.
 
+### Outer Joins
+An OUTER JOIN, also called a FULL OUTER JOIN, is a join that will return rows from the inner join result, and also rows from either of the tables being joined. This join is used rarely.
 
