@@ -1,0 +1,102 @@
+## Lesson 3: Aggregations
+
+### What is a NULL
+NULLs are a datatype that specifies where no data exists in SQL. That's not the same thing as 0. NULLs are often ignored in our aggregation functions. 
+
+### How do you use a NULL?
+When identifying NULLs in a WHERE clause, we write IS NULL or IS NOT NULL. We don't use =, because NULL isn't considered a value in SQL. Rather, it is a property of the data. For example:
+```sql
+SELECT *
+FROM accounts
+WHERE primary_poc IS NOT NULL
+```
+Here, we SELECT all columns FROM the account table WHERE the primary_poc IS NOT NULL. In other words, return all the records that do not have a null value in the primary_poc column.
+
+### What are two circumstances in which you might encounter NULL?
+
+- NULLs frequently occur when performing a LEFT or RIGHT JOIN. You saw in the last lesson - when some rows in the left table of a left join are not matched with rows in the right table, those rows will contain some NULL values in the result set.
+- NULLs can also occur from simply missing data in our database.
+
+### COUNT
+The COUNT function gives you the total number of records in a table or the number of non-null records in a particular column in a table. COUNT works in columns with numerical values, but also in other columns. That's not true of some functions, like SUM and AVG. 
+
+An example,
+```sql
+SELECT COUNT(*) AS order_count
+FROM orders
+WHERE occurred_at >= '2016-12-01'
+AND occurred_at < '2017-01-01'
+```
+Here, we SELECT the COUNT of all records, which we'll call order_count, FROM the orders table WHERE occurred_at is great than or equal to '2016-12-01' AND less than '2017-01-01'. 
+
+### SUM
+SUM will add up all of the numerical values in a column, ignoring the null values. Here's an example,
+```sql
+SELECT SUM(standard_qty) AS standard,
+       SUM(gloss_qty) AS gloss,
+       SUM(poster_qty) AS poster
+FROM orders
+```
+Here, we SELECT the SUM for each of three different columns: standard_qty, gloss_qty, and poster_qty. We also assign them aliases: standard, gloss, and poster. We get all of these FROM the orders table.
+
+### MIN and MAX
+MIN and MAX work similarly to SUM. However, functionally, MIN and MAX are similar to COUNT in that they can be used on non-numerical columns. Depending on the column type, MIN will return the lowest number, earliest date, or non-numerical value as early in the alphabet as possible. As you might suspect, MAX does the opposite—it returns the highest number, the latest date, or the non-numerical value closest alphabetically to “Z.” Here's an example:
+```sql
+SELECT MIN(standard_qty) AS standard_min,
+       MIN(gloss_qty) AS gloss_min,
+       MIN(poster_qty) AS poster_min,
+       MAX(standard_qty) AS standard_max,
+       MAX(gloss_qty) AS gloss_max,
+       MAX(poster_qty) AS poster_max
+FROM   orders
+```
+Here, we getting the minimum value and the maximum value for 3 columns: standard_qty, gloss_qty, and poster_qty. 
+
+### AVG
+The average function, AVG, gives us the average for a range of numerical values in a column. Rows with NULL values are ignored. If you want to get an average that considers NULLs as 0, then you'll have to divide the SUM by the COUNT for a column. Interestingly, it's apparetly difficult to find the median value in a column of numerical values. Here's an example:
+```sql
+SELECT AVG(standard_qty) AS standard_avg,
+       AVG(gloss_qty) AS gloss_avg,
+       AVG(poster_qty) AS poster_avg
+FROM orders
+```
+### Practice Problems with MIN, MAX, and AVG
+
+Problem 1. When was the earliest order ever placed? You only need to return the date.
+```sql
+select min(orders.occurred_at)
+from orders
+```
+
+Problem 2. Try performing the same query as in question 1 without using an aggregation function.
+```sql
+select orders.occurred_at
+from orders
+order by orders.occurred_at
+limit 1
+```
+
+Problem 3. When did the most recent (latest) web_event occur?
+```sql
+select max(we.occurred_at)
+from web_events we
+```
+
+Problem 4. Try to perform the result of the previous query without using an aggregation function.
+```sql
+select we.occurred_at
+from web_events we
+order by we.occurred_at desc
+limit 1
+```
+
+Problem 5. Find the mean (AVERAGE) amount spent per order on each paper type, as well as the mean amount of each paper type purchased per order. Your final answer should have 6 values - one for each paper type for the average number of sales, as well as the average amount.
+```sql
+select avg(o.standard_amt_usd), avg(o.gloss_amt_usd), avg(o.poster_amt_usd), avg(o.standard_qty), avg(o.gloss_qty), avg(o.poster_qty)
+from orders o
+```
+
+Problem 6. Via the video, you might be interested in how to calculate the MEDIAN. Though this is more advanced than what we have covered so far try finding - what is the MEDIAN total_usd spent on all orders?
+```sql
+
+```
