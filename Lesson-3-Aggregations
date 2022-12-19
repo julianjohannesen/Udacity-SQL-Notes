@@ -98,5 +98,93 @@ from orders o
 
 Problem 6. Via the video, you might be interested in how to calculate the MEDIAN. Though this is more advanced than what we have covered so far try finding - what is the MEDIAN total_usd spent on all orders?
 ```sql
+SELECT *
+FROM (SELECT total_amt_usd
+   FROM orders
+   ORDER BY total_amt_usd
+   LIMIT 3457) AS Table1
+ORDER BY total_amt_usd DESC
+LIMIT 2;
+```
+Since there are 6912 orders - we want the average of the 3457 and 3456 order amounts when ordered. This is the average of 2483.16 and 2482.55. This gives the median of 2482.855. This obviously isn't an ideal way to compute. If we obtain new orders, we would have to change the limit. SQL didn't even calculate the median for us. The above used a SUBQUERY, but you could use any method to find the two necessary values, and then you just need the average of them.
+
+### GROUP BY
+Thus far, we've used aggregrates to aggregate entire columns in a table. But let's say you want to get the sum of all of the sales by paper type for each account. How would you do that? Well, that requires GROUP BY. Group by allows us to create segments within a column that will be aggregated independently of one another. 
+
+### Where does GROUP BY go?
+GROUP BY goes between the WHERE clause and the ORDER BY clause. 
+
+### How do you use GROUP BY?
+Any column included the SELECT clause that is not being aggregated, must be included in the GROUP BY clause. For example:
+
+```sql
+SELECT account_id,
+       SUM(standard_qty) AS standard,
+       SUM(gloss_qty) AS gloss,
+       SUM(poster_qty) AS poster
+FROM orders
+GROUP BY account_id
+ORDER BY account_id
+```
+Here, we select orders.account_id and the sums of quantities of each type of paper. We get those FROM the orders table. However, we must GROUP BY account_id if what we want to see is the sums per account. It also helps to ORDER BY the account_id.
+
+### GROUP BY Practice Problems from section 14
+
+1. Which account (by name) placed the earliest order? Your solution should have the account name and the date of the order.
+```sql
+select accounts.name, orders.occurred_at
+from orders
+join accounts
+on orders.account_id = accounts.id
+order by orders.occurred_at
+limit 1
+```
+
+2. Find the total sales in usd for each account. You should include two columns - the total sales for each company's orders in usd and the company name.
+```sql
+select a.name, sum(o.total) as total
+from accounts a
+join orders o
+on o.account_id = a.id
+group by a.name
+order by a.name
+```
+
+3. Via what channel did the most recent (latest) web_event occur, which account was associated with this web_event? Your query should return only three values - the date, channel, and account name.
+```sql
+select a.name, we.channel, max(we.occurred_at) as occurred_at
+from accounts a
+join web_events we
+on we.account_id = a.id
+group by a.name, we.channel
+order by occurred_at desc
+limit 1
+```
+
+4. Find the total number of times each type of channel from the web_events was used. Your final table should have two columns - the channel and the number of times the channel was used.
+```sql
+select we.channel, count(we.channel) as channel_count
+from web_events we
+group by we.channel
+```
+
+5. Who was the primary contact associated with the earliest web_event?
+```sql
+select a.primary_poc, min(we.occurred_at) as occurred_at
+from accounts a
+join web_events we
+on we.account_id = a.id
+group by a.primary_poc
+order by occurred_at
+limit 1
+```
+
+6. What was the smallest order placed by each account in terms of total usd. Provide only two columns - the account name and the total usd. Order from smallest dollar amounts to largest.
+```sql
+
+```
+
+7. Find the number of sales reps in each region. Your final table should have two columns - the region and the number of sales_reps. Order from the fewest reps to most reps.
+```sql
 
 ```
