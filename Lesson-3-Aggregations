@@ -248,3 +248,51 @@ GROUP BY account_id, channel
 ORDER BY account_id, channel DESC
 ```
 Here, we're getting the account id, channel and count of id from web_events, and we're grouping by both account_id and channel. We're also ordering by account_id first, then channel. Note that the order that you list the columns in the GROUP BY clause doesn't matter, but the order that list columns in the ORDER BY clause does.
+
+### Problems from Section 17
+1. For each account, determine the average amount of each type of paper they purchased across their orders. Your result should have four columns - one for the account name and one for the average quantity purchased for each of the paper types for each account.
+```sql
+select a.name, avg(o.standard_qty) as stand, avg(o.gloss_qty) as gloss, avg(o.poster_qty) as poster
+from orders o
+join accounts a
+on o.account_id = a.id
+group by a.name
+order by a.name
+```
+
+2. For each account, determine the average amount spent per order on each paper type. Your result should have four columns - one for the account name and one for the average amount spent on each paper type.
+```sql
+select a.name, avg(standard_amt_usd) as stand, avg(gloss_amt_usd) as gloss, avg(poster_amt_usd) as poster
+from orders o
+join accounts a
+on o.account_id = a.id
+group by a.name
+order by a.name
+```
+
+3. Determine the number of times a particular channel was used in the web_events table for each sales rep. Your final table should have three columns - the name of the sales rep, the channel, and the number of occurrences. Order your table with the highest number of occurrences first.
+```sql
+select sr.name, we.channel, count(we.id) as occurrences
+from accounts a
+join sales_reps sr
+on a.sales_rep_id = sr.id
+join web_events we
+on we.account_id = a.id
+group by sr.name, we.channel
+order by occurrences desc
+```
+
+4. Determine the number of times a particular channel was used in the web_events table for each region. Your final table should have three columns - the region name, the channel, and the number of occurrences. Order your table with the highest number of occurrences first.
+```sql
+select r.name, we.channel, count(we.id) as occurrences
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+join accounts a
+on a.sales_rep_id = sr.id
+join web_events we
+on we.account_id = a.id
+group by r.name, we.channel
+order by occurrences desc
+
+```
