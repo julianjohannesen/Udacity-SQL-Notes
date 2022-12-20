@@ -108,6 +108,26 @@ LIMIT 2;
 ```
 Since there are 6912 orders - we want the average of the 3457 and 3456 order amounts when ordered. This is the average of 2483.16 and 2482.55. This gives the median of 2482.855. This obviously isn't an ideal way to compute. If we obtain new orders, we would have to change the limit. SQL didn't even calculate the median for us. The above used a SUBQUERY, but you could use any method to find the two necessary values, and then you just need the average of them.
 
+Tom Chan suggested this solution, which uses syntax that hasn't been covered yet:
+```sql
+SELECT a.l_mid,
+   a.r_mid,
+   b.total_amt_usd as l_total_amt_usd,
+   c.total_amt_usd as r_total_amt_usd,
+   (b.total_amt_usd + c.total_amt_usd)*1.0/2 AS MEDIAN		
+FROM (SELECT CASE WHEN COUNT(1)%2=0 THEN COUNT(1)/2   ELSE (COUNT(1)+1)/2 END AS l_mid,
+             CASE WHEN COUNT(1)%2=0 THEN COUNT(1)/2+1 ELSE (COUNT(1)+1)/2 END AS r_mid
+      FROM orders) a
+   JOIN (SELECT total_amt_usd, ROW_NUMBER() 
+         OVER(ORDER BY total_amt_usd) AS rn 
+         FROM orders) b 
+   ON a.l_mid=b.rn
+   JOIN (SELECT total_amt_usd, ROW_NUMBER() 
+         OVER(ORDER BY total_amt_usd) AS rn 
+         FROM orders) c 
+   ON a.r_mid=c.rn 
+```
+
 ### GROUP BY
 Thus far, we've used aggregrates to aggregate entire columns in a table. But let's say you want to get the sum of all of the sales by paper type for each account. How would you do that? Well, that requires GROUP BY. Group by allows us to create segments within a column that will be aggregated independently of one another. 
 
@@ -160,6 +180,15 @@ group by a.name, we.channel
 order by occurred_at desc
 limit 1
 ```
+Note that this solution works, but it turns out that the max function is unnecessary and probably slows the query down a bit. You get the exact same answer with this solution:
+```sql
+SELECT w.occurred_at, w.channel, a.name
+FROM web_events w
+JOIN accounts a
+ON w.account_id = a.id 
+ORDER BY w.occurred_at DESC
+LIMIT 1;
+```
 
 4. Find the total number of times each type of channel from the web_events was used. Your final table should have two columns - the channel and the number of times the channel was used.
 ```sql
@@ -178,13 +207,32 @@ group by a.primary_poc
 order by occurred_at
 limit 1
 ```
+This is another error. The solution returns the correct result, but the function isn't necessary, and it probably slows things down. The solution given in section 15 is:
+```sql
+SELECT a.primary_poc
+FROM web_events w
+JOIN accounts a
+ON a.id = w.account_id
+ORDER BY w.occurred_at
+LIMIT 1;
+```
 
 6. What was the smallest order placed by each account in terms of total usd. Provide only two columns - the account name and the total usd. Order from smallest dollar amounts to largest.
 ```sql
-
+select a.name, min(o.total_amt_usd) as total
+from orders o
+join accounts a
+on o.account_id = a.id
+group by a.name
+order by total
 ```
 
 7. Find the number of sales reps in each region. Your final table should have two columns - the region and the number of sales_reps. Order from the fewest reps to most reps.
 ```sql
-
+select r.name, count(sr.name) as number_of_reps
+from region r
+join sales_reps sr
+on sr.region_id = r.id
+group by r.name
+order by number_of_reps
 ```
