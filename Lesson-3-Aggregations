@@ -236,3 +236,15 @@ on sr.region_id = r.id
 group by r.name
 order by number_of_reps
 ```
+
+### Grouping by Multiple Columns
+You can GROUP BY and ORDER BY multiple columns in the same query. For example, say you want to get the number of events per channel per account id. Because we're only after the account_id, we can confine our query to the web_events table without needing to join any other table. And because each id in the web_events table represents an event, we can just count the ids to get the number of events. Because we're counting the ids, we know we'll need at least one group by value. But we don't just want to events per channel or events per account id. Instead, we want events per channel *per account id*. To get that, we need both of those columns in our GROUP BY clause.
+```sql
+SELECT account_id,
+       channel,
+       COUNT(id) as events
+FROM web_events
+GROUP BY account_id, channel
+ORDER BY account_id, channel DESC
+```
+Here, we're getting the account id, channel and count of id from web_events, and we're grouping by both account_id and channel. We're also ordering by account_id first, then channel. Note that the order that you list the columns in the GROUP BY clause doesn't matter, but the order that list columns in the ORDER BY clause does.
