@@ -296,3 +296,49 @@ group by r.name, we.channel
 order by occurrences desc
 
 ```
+
+### DISTINCT
+DISTINCT is always used in SELECT statements, and it provides the unique rows for all columns written in the SELECT statement. Therefore, you only use DISTINCT once in any particular SELECT statement. Note that DISTINCT, especially in aggregations, can slow your queries.
+
+### Problems
+
+1. Are there any accounts associated with more than one region?
+
+This is the solution that makes the most sense to me:
+```sql
+select a.name as account_name, count(r.name) as region_count
+from region r
+join sales_reps sr on sr.region_id = r.id
+join accounts a    on a.sales_rep_id = sr.id
+group by account_name
+order by region_count, account_name
+```
+This solution shows us the account names and the number of regions associated with each account. However, it turns out that this is a very roundabout way to answer the question being asked.
+
+This is the most succinct (and probably fastest) solution, using DISTINCT:
+```sql
+SELECT DISTINCT id, name
+FROM accounts;
+```
+I think the reasoning is that if there were any accounts that had more than one region, then there would have to be duplicate account ids and names in the accounts table to allow for a single account having two or more regions. There are no such duplicate accounts, therefore there are no accounts associated with more than one region.
+
+2. Have any sales reps worked in more than one account?
+
+This is what makes sense to me:
+```sql
+select distinct sr.id as sr_id, sr.name as sr_name, a.id as a_id, a.name as a_name
+from sales_reps sr
+join accounts a
+on a.sales_rep_id = sr.id
+order by sr.id, a.id
+```
+The result we get here shows us the sales reps' names and account names, making it obvious that all sales reps are associated with more than just one account.
+
+This is the actual answer:
+```sql
+SELECT DISTINCT id, name
+FROM sales_reps;
+```
+What this query returns is a list of 50 names, but if you know that there are more than 50 accounts (there are), then you quickly realize that at least one sales rep has more than one account. As it turns out, all of the sales reps have more than one account. 
+
+It's pretty annoying that there isn't more explanation offered in the course material. This stuff may seem quite obvious to the course designers, but I don't think it will be obvious to everyone.
