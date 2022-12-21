@@ -342,3 +342,29 @@ FROM sales_reps;
 What this query returns is a list of 50 names, but if you know that there are more than 50 accounts (there are), then you quickly realize that at least one sales rep has more than one account. As it turns out, all of the sales reps have more than one account. 
 
 It's pretty annoying that there isn't more explanation offered in the course material. This stuff may seem quite obvious to the course designers, but I don't think it will be obvious to everyone.
+
+### HAVING
+Say you want to get a list of accounts with total sales greater than $250,000. This isn't something that you can do with a WHERE clause, because you can not include aggregations in a WHERE clause. Instead, you need to use the HAVING clause. The HAVING clause must appear after the GROUP BY clause, because it is executed after any aggregate functions have been performed. Note that the HAVING clause really only works when you're group by 1 or 2 columns.
+
+So, this will NOT work:
+```sql
+SELECT account_id,
+       SUM(total_amt_usd) AS sum_total_amt_usd
+FROM orders
+/* This will NOT work! */
+WHERE SUM(total_amt_usd) >= 250000
+GROUP BY 1
+ORDER BY 2 DESC
+```
+
+However, you can successfully do this:
+```sql
+SELECT account_id,
+       SUM(total_amt_usd) AS sum_total_amt_usd
+FROM orders
+GROUP BY 1
+HAVING SUM(total_amt_usd) >= 250000
+ORDER BY 2 DESC
+```
+As you can see the WHERE clause has been replaced by a HAVING clause that appears after the GROUP BY clause.
+
