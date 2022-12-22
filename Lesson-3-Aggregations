@@ -368,3 +368,58 @@ ORDER BY 2 DESC
 ```
 As you can see the WHERE clause has been replaced by a HAVING clause that appears after the GROUP BY clause.
 
+### Problems 
+
+1. How many of the sales reps have more than 5 accounts that they manage?
+```sql
+select sr.name, count(a.id) as acc_count
+from sales_reps sr
+join accounts a
+on a.sales_rep_id = sr.id
+group by sr.name
+having count(a.id) > 5
+```
+
+2. How many accounts have more than 20 orders?
+```sql
+select accounts.id, count(orders.id) 
+from accounts
+join orders 
+on orders.account_id = accounts.id
+group by accounts.id
+having count(orders.id) > 20
+order by count(orders.id) desc
+```
+
+3. Which account has the most orders?
+```sql
+select accounts.name, count(orders.id)
+from accounts
+join orders 
+on orders.account_id = accounts.id
+group by accounts.name
+order by count(orders.id) desc
+limit 1
+```
+
+4. Which accounts spent more than 30,000 usd total across all orders?
+```sql
+select a.name, o.total_amt_usd
+from accounts a
+join orders o
+on o.account_id = a.id
+where o.total_amt_usd > 30000
+order by o.total_amt_usd desc
+```
+
+5. Which accounts spent less than 1,000 usd total across all orders?
+
+6. Which account has spent the most with us?
+
+7. Which account has spent the least with us?
+
+8. Which accounts used facebook as a channel to contact customers more than 6 times?
+
+9. Which account used facebook most as a channel?
+
+10. Which channel was most frequently used by most accounts?
