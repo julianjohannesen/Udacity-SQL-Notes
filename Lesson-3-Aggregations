@@ -379,6 +379,17 @@ on a.sales_rep_id = sr.id
 group by sr.name
 having count(a.id) > 5
 ```
+You can also get this result using a subquery, like this:
+```sql
+SELECT COUNT(*) num_reps_above5
+FROM(SELECT s.id, s.name, COUNT(*) num_accounts
+     FROM accounts a
+     JOIN sales_reps s
+     ON s.id = a.sales_rep_id
+     GROUP BY s.id, s.name
+     HAVING COUNT(*) > 5
+     ORDER BY num_accounts) AS Table1;
+```
 
 2. How many accounts have more than 20 orders?
 ```sql
@@ -390,6 +401,7 @@ group by accounts.id
 having count(orders.id) > 20
 order by count(orders.id) desc
 ```
+In the solution provided by Udacity, they use count(*) in both the select clause and the having clause, rather than count(orders.id). I guess that works, because we're looking at the inner join of the two tables, which means that every orders.account_id is associated with an account.id.
 
 3. Which account has the most orders?
 ```sql
@@ -404,22 +416,84 @@ limit 1
 
 4. Which accounts spent more than 30,000 usd total across all orders?
 ```sql
-select a.name, o.total_amt_usd
+select a.name, sum(o.total_amt_usd)
 from accounts a
 join orders o
 on o.account_id = a.id
-where o.total_amt_usd > 30000
-order by o.total_amt_usd desc
+group by a.name
+having sum(o.total_amt_usd) > 30000
+order by sum(o.total_amt_usd) desc
 ```
+Note that you can alias the sum of the totals and use that alias in the order by clause, but you can't use the alias in the having clause.
 
 5. Which accounts spent less than 1,000 usd total across all orders?
+```sql
+select a.name, sum(o.total_amt_usd)
+from accounts a
+join orders o
+on o.account_id = a.id
+group by a.name
+having sum(o.total_amt_usd) < 1000
+order by sum(o.total_amt_usd) desc
+```
 
 6. Which account has spent the most with us?
+```sql
+select a.name, sum(o.total_amt_usd)
+from accounts a
+join orders o
+on o.account_id = a.id
+group by a.name
+order by sum(o.total_amt_usd) desc
+limit 1
+```
 
 7. Which account has spent the least with us?
+```sql
+select a.name, sum(o.total_amt_usd)
+from accounts a
+join orders o
+on o.account_id = a.id
+group by a.name
+order by sum(o.total_amt_usd)
+limit 1
+```
 
 8. Which accounts used facebook as a channel to contact customers more than 6 times?
+```sql
+select a.name
+from accounts a
+join web_events we
+on we.account_id = a.id
+where we.channel = 'facebook'
+group by a.name
+having count(a.id) > 6
+order by a.name
+```
+Udacity solved this differently, choosing not to use the where clause and to put the "we.channel = 'facebook'" expression into the having clause. 
 
 9. Which account used facebook most as a channel?
+```sql
+select a.name, count(a.id) as num_uses
+from accounts a
+join web_events we
+on we.account_id = a.id
+where we.channel = 'facebook'
+group by a.name
+order by num_uses desc
+limit 1
+```
+Udacity notes that using limit like this only works if there are no ties. It's a good idea to check that by trying limit 5 first.
 
 10. Which channel was most frequently used by most accounts?
+
+This question is badly worded. It sounds like they want a result with one channel name and that's it, i.e. the one channel that was used more frequently than any other channel for at least half the accounts. But what they wanted was a list of account names, the most frequently used channel for that account name, and the number of times the channel was used.
+```sql
+SELECT a.id, a.name, w.channel, COUNT(*) use_of_channel
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+GROUP BY a.id, a.name, w.channel
+ORDER BY use_of_channel DESC
+LIMIT 10;
+```
