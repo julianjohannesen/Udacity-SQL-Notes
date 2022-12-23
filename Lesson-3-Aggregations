@@ -497,3 +497,62 @@ GROUP BY a.id, a.name, w.channel
 ORDER BY use_of_channel DESC
 LIMIT 10;
 ```
+
+### Dates
+Storing dates as YY-MM-DD is useful because it means that dates will be in the correct chronological order even when sorted as text, i.e. 10-01-23 will appear before 10-01-24, etc.
+
+DATE_TRUNC is a function that allows you to truncate your date to a particular part of your date-time column. Common truncations are *day*, *month*, and *year*.
+
+DATE_PART can be useful for pulling a specific portion of a date, but notice pulling month or day of the week (dow) means that you are no longer keeping the years in order. Rather you are grouping for certain components regardless of which year they belonged in.
+
+Note: 'dow' stands for day of week and returns a number from 0-6 where 0 is Sunday and 6 is Saturday.
+
+Example 1. How much standard paper was sold on April 1st, 2016?
+```sql
+select date_trunc('day', o.occurred_at) as the_date, 
+	sum(o.standard_qty) as total_standard_sold
+from orders o
+group by 1
+having date_trunc('day', o.occurred_at) = '2016-04-01:00:00:00'
+```
+Here we're truncating the occurred_at column to just the day and calling it the_date. We're also getting the sum of standard_qty and calling it total_standard_qty. We're selecting these aggregates from the orders table. We're also group by the_date, which we can refer to as just "1". And we're setting the truncated date to April, 1st 2016. 
+
+Example 2. Which day of the week does Parch and Posey sell the most paper?
+```sql
+select date_part('dow', occurred_at) as day_of_week,
+   sum(total) as total_qty
+from orders
+group by 1
+order by 2 desc
+```
+Here, we're selecting the occurred_at column and aggregating by day of the week using the date_trunc function. We're also selecting the total column and aggregating by the sum of total. We've aliased both of those aggregations. We're selecting from the orders table and grouping by day_of_week, which we refer to here as "1". Finally, we're ordering by total_qty, which we refer to here as "2" with the totals in descending order.
+
+### Using numbers in the GROUP BY and ORDER BY clause to refer to previously identified columns
+You can use numbers in the GROUP BY and ORDER BY clause to refer to columns previously identified in the SELECT clause. For example,
+```sql
+SELECT standard_qty, COUNT(*)
+FROM orders
+GROUP BY 1 /*this 1 refers to standard_qty since it is the first of the columns included in the select statement*/
+ORDER BY 1 /*this 1 refers to standard_qty since it is the first of the columns included in the select statement*/
+```
+
+### Date and Time Problems
+1. Find the sales in terms of total dollars for all orders in each year, ordered from greatest to least. Do you notice any trends in the yearly sales totals?
+```sql
+```
+
+2. Which month did Parch & Posey have the greatest sales in terms of total dollars? Are all months evenly represented by the dataset?
+```sql
+```
+
+3. Which year did Parch & Posey have the greatest sales in terms of the total number of orders? Are all years evenly represented by the dataset?
+```sql
+```
+
+4. Which month did Parch & Posey have the greatest sales in terms of the total number of orders? Are all months evenly represented by the dataset?
+```sql
+```
+
+5. In which month of which year did Walmart spend the most on gloss paper in terms of dollars?
+```sql
+```
