@@ -588,3 +588,56 @@ group by a.name, date_trunc('month', o.occurred_at)
 order by gloss_sales desc
 limit 1
 ```
+
+### CASE Statement
+The CASE statement is SQL's way of handling if...then logic. 
+
+- The CASE statement always goes in the SELECT clause.
+- CASE must include the following components: WHEN, THEN, and END. ELSE is an optional component to catch cases that didn’t meet any of the other previous CASE conditions.
+- You can make any conditional statement using any conditional operator (like WHERE) between WHEN and THEN. This includes stringing together multiple conditional statements using AND and OR.
+- You can include multiple WHEN statements, as well as an ELSE statement again, to deal with any unaddressed conditions.
+
+Here's an example. Say you want to find the unit price for standard paper for each order by dividing standard_amt_usd by standard_qty. The answer below will cause an error due to divison by 0.
+```sql
+SELECT id, account_id, standard_amt_usd/standard_qty AS unit_price
+FROM orders
+```
+
+However, we can avoid this error by using a case clause.
+```sql
+SELECT id, account_id,
+   case when standard_qty = 0  or standard_qty is null then 0 
+         else standard_amt_usd/standard_qty end AS unit_price
+FROM orders
+LIMIT 10;
+```
+
+Here's another example. Say you want to create a column to identify whether a record is within a certain total quantity range. 
+```sql
+SELECT account_id,
+       occurred_at,
+       total,
+       CASE WHEN total > 500 THEN 'Over 500'
+            WHEN total > 300 AND total <= 500 THEN '301 - 500'
+            WHEN total > 100 AND total <=300 THEN '101 - 300'
+            ELSE '100 or under' END AS total_group
+FROM orders
+```
+
+### CASE and Aggregations
+How do you aggregate based on derived columns created with CASE statements? Here's an example. Say you want to know how many orders have a total quantity under 500 and how many have a total quantity over 500. The query looks like this:
+```sql
+select case when total < 500 then 'Less than 500'
+            else 'Greater than or equal to 500' end as category,
+   count(*) as order_count
+from orders
+/* We use 1 in the group by statement to avoid repeating the entire case statement */
+group by 1 
+```
+
+Can you do this with a WHERE clause? Yes, but a WHERE clause can only handle one condition.
+```sql
+SELECT COUNT(1) AS orders_over_500_units
+FROM orders
+WHERE total > 500
+```
