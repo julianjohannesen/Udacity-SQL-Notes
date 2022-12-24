@@ -541,12 +541,14 @@ ORDER BY 1 /*this 1 refers to standard_qty since it is the first of the columns 
 ```sql
 select date_trunc('year', o.occurred_at) as year, sum(o.total_amt_usd) as sum
 from orders o
-group by date_trunc('year', o.occurred_at)
-order by sum desc
+group by 1
+order by 2 desc
 ```
 Here, we're selecting the occurred_at and total_amt_usd columns from the orders table, but we're truncating the date by year and summing the orders. We're grouping by the truncated occurred_at column, and ordering in descending order by the sum of total_amt_usd.
 
 2. Which month did Parch & Posey have the greatest sales in terms of total dollars? Are all months evenly represented by the dataset?
+
+I used date_trunc, not date_part here. It's tough to tell what the course designers are asking for. I thought they were asking for the single month that had the highest sales, starting back in 2013 and moving right up through 2017 inclusive. But it turns out that that's not what they were asking. Instead, they wanted to know, if you group all of the months together by name, which "month type" has the highest sales. The answer is still December, but the totals are obviously different. They also excluded 
 ```sql
 select date_trunc('month', o.occurred_at) as month, sum(o.total_amt_usd) as sum
 from orders o
@@ -556,6 +558,8 @@ limit 1
 ```
 
 3. Which year did Parch & Posey have the greatest sales in terms of the total number of orders? Are all years evenly represented by the dataset?
+
+In this case, it makes no difference whether you use date_trunc or date_part, except that the table just looks nice if you use date_part.
 ```sql
 select date_trunc('year', o.occurred_at) as year, count(*) as orders_count
 from orders o
@@ -564,6 +568,8 @@ order by orders_count desc
 ```
 
 4. Which month did Parch & Posey have the greatest sales in terms of the total number of orders? Are all months evenly represented by the dataset?
+
+I made the same mistake here that I did in quesiton 2.
 ```sql
 select date_trunc('month', o.occurred_at) as year, count(*) as orders_count
 from orders o
@@ -580,4 +586,5 @@ on o.account_id = a.id
 where a.name = 'Walmart'
 group by a.name, date_trunc('month', o.occurred_at)
 order by gloss_sales desc
+limit 1
 ```
