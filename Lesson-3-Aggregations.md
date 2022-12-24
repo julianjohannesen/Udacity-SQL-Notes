@@ -565,9 +565,19 @@ order by orders_count desc
 
 4. Which month did Parch & Posey have the greatest sales in terms of the total number of orders? Are all months evenly represented by the dataset?
 ```sql
-
+select date_trunc('month', o.occurred_at) as year, count(*) as orders_count
+from orders o
+group by date_trunc('month', o.occurred_at)
+order by orders_count desc
 ```
 
 5. In which month of which year did Walmart spend the most on gloss paper in terms of dollars?
 ```sql
+select a.name, date_trunc('month', o.occurred_at) as month, sum(gloss_amt_usd) as gloss_sales
+from orders o
+join accounts a
+on o.account_id = a.id
+where a.name = 'Walmart'
+group by a.name, date_trunc('month', o.occurred_at)
+order by gloss_sales desc
 ```
