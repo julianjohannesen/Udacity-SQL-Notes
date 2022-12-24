@@ -539,18 +539,33 @@ ORDER BY 1 /*this 1 refers to standard_qty since it is the first of the columns 
 ### Date and Time Problems
 1. Find the sales in terms of total dollars for all orders in each year, ordered from greatest to least. Do you notice any trends in the yearly sales totals?
 ```sql
+select date_trunc('year', o.occurred_at) as year, sum(o.total_amt_usd) as sum
+from orders o
+group by date_trunc('year', o.occurred_at)
+order by sum desc
 ```
+Here, we're selecting the occurred_at and total_amt_usd columns from the orders table, but we're truncating the date by year and summing the orders. We're grouping by the truncated occurred_at column, and ordering in descending order by the sum of total_amt_usd.
 
 2. Which month did Parch & Posey have the greatest sales in terms of total dollars? Are all months evenly represented by the dataset?
 ```sql
+select date_trunc('month', o.occurred_at) as month, sum(o.total_amt_usd) as sum
+from orders o
+group by date_trunc('month', o.occurred_at)
+order by sum desc
+limit 1
 ```
 
 3. Which year did Parch & Posey have the greatest sales in terms of the total number of orders? Are all years evenly represented by the dataset?
 ```sql
+select date_trunc('year', o.occurred_at) as year, count(*) as orders_count
+from orders o
+group by date_trunc('year', o.occurred_at)
+order by orders_count desc
 ```
 
 4. Which month did Parch & Posey have the greatest sales in terms of the total number of orders? Are all months evenly represented by the dataset?
 ```sql
+
 ```
 
 5. In which month of which year did Walmart spend the most on gloss paper in terms of dollars?
