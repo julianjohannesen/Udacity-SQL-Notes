@@ -635,9 +635,64 @@ from orders
 group by 1 
 ```
 
-Can you do this with a WHERE clause? Yes, but a WHERE clause can only handle one condition.
+Can you do this with a WHERE clause? Yes:
 ```sql
 SELECT COUNT(1) AS orders_over_500_units
 FROM orders
 WHERE total > 500
 ```
+The limitation is that this kind of query can only handle 1 condition. The results will display only the orders over 500. For more complicated conditions, you need to use case with aggregations.
+
+### Problems with CASE and Aggregations
+1. Write a query to display for each order, the account ID, the total amount of the order, and the level of the order - ‘Large’ or ’Small’ - depending on if the order is $3000 or more, or smaller than $3000.
+```sql
+select o.account_id, o.total_amt_usd, 
+   case when o.total_amt_usd > 3000 then 'Large' 
+        else 'Small' end
+from orders o
+```
+
+2. Write a query to display the number of orders in each of three categories, based on the total number of items in each order. The three categories are: 'At Least 2000', 'Between 1000 and 2000' and 'Less than 1000'.
+
+Remember what you're trying to display: a number of orders column, and a category column that has 3 possible categories. The number of orders column is going to be a count of the orders within each category. How do you know that the count will be correctly divided into our 3 possible categories? In the group by clause we group by the case statement, and that ensures that the count will be divided according to the conditions we set up in the case statement.
+```sql
+select case when total >= 2000 then 'At least 2000'
+            when total < 2000 and total >= 1000 then 'Between 1000 and 2000'
+            else 'Less than 1000' end as category,
+      count(*) as count 
+from orders
+group by 1
+```
+
+3. We would like to understand 3 different levels of customers based on the amount associated with their purchases. 
+
+The top-level includes anyone with a Lifetime Value (total sales of all orders) greater than 200,000 usd. The second level is between 200,000 and 100,000 usd. The lowest level is anyone under 100,000 usd. 
+
+Provide a table that includes the level associated with each account. You should provide the account name, the total sales of all orders for the customer, and the level. Order with the top spending customers listed first.
+
+Again, what do we want to display? Three columns. Column 1 will show the account name. Column 2 will show their total purchase amount per account. Column 3 will show our categories, which we set up with our case statement. 
+
+How do we get the total amount spent per account? We need to sum the total_amt_usd for each order associated with that account. There may be several orders associated with each account. We can use sum(total_amt_usd) to do this and then group by account to make sure the sum is broken up by account.
+
+How do we get the conditions for the case statement? We need to use the same sum(total_amt_usd) function in the first two conditions of the case statement. The group by clause will ensure that we're only dealing with the total_lifetime for this account name.
+
+### For me, the big takeaway is that you can use aggregations inside the conditions of a case statement and your group by clause will make sure that they're grouped appropriately.
+```sql
+select 
+   a.name, 
+   sum(o.total_amt_usd) as total_lifetime,
+   case when sum(o.total_amt_usd) > 200000 then 'top'
+      when sum(o.total_amt_usd) <= 200000 and sum(o.total_amt_usd) > 100000 then 'mid'
+      else 'low' end as Lifetime_Value
+from accounts a
+join orders o
+on o.account_id = a.id
+group by 1
+order by 2 desc
+```
+
+4. We would now like to perform a similar calculation to the first, but we want to obtain the total amount spent by customers only in 2016 and 2017. Keep the same levels as in the previous question. Order with the top spending customers listed first.
+
+5. We would like to identify top-performing sales reps, which are sales reps associated with more than 200 orders. Create a table with the sales rep name, the total number of orders, and a column with top or not depending on if they have more than 200 orders. Place the top salespeople first in your final table.
+
+6. The previous didn't account for the middle, nor the dollar amount associated with the sales. Management decides they want to see these characteristics represented as well. We would like to identify top-performing sales reps, which are sales reps associated with more than 200 orders or more than 750000 in total sales. The middle group has any rep with more than 150 orders or 500000 in sales. Create a table with the sales rep name, the total number of orders, total sales across all orders, and a column with top, middle, or low depending on these criteria. Place the top salespeople based on the dollar amount of sales first in your final table. You might see a few upset salespeople by this criteria!
