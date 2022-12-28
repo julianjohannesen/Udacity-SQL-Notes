@@ -19,6 +19,7 @@ SELECT product_id,
        name,
        price
 FROM db.product
+/* Note that subqueries always appear in parentheses) */
 Where price > (SELECT AVG(price)
               FROM db.product)
 ```
@@ -47,5 +48,68 @@ Both joins and subqueries combine data from one or more tables into a single res
 | Dependencies | A subquery clause can be run completely independently. Why trying to debug code, subqueries are often run independently to pressure test results before running the larger query. | A join clause cannot stand and be run independently.                                                                                 |
 
 ### Similarities between joins and subqueries.
-Output: Both bring together multiple tables to generate a single output. 
-Deep-Dive: They're similar under the hood.
+- Output: Both bring together multiple tables to generate a single output. 
+- Deep-Dive: They're similar under the hood.
+
+### More similarities and differences
+
+Subqueries:
+- Output: Either a scalar (a single value) or rows that have met a condition. 
+- Use Case: Calculate a scalar value to use in a later part of the query (e.g., average price as a filter). 
+- Dependencies: Stand independently and be run as complete queries themselves.
+
+Joins:
+- Output: A joint view of multiple tables stitched together using a common “key”. 
+- Use Case: Fully stitch tables together and have full flexibility on what to “select” and “filter from”. 
+- Dependencies: Cannot stand independently. (There's an exception for correlated nested or inline queries.)
+
+### Placement and Dependencies
+Placement:
+There are four places where subqueries can be inserted within a larger query:
+- With - This subquery is used when you’d like to “pseudo-create” a table from an existing table and visually scope the temporary table at the top of the larger query. For example,
+```sql
+WITH subquery_name (column_name1, ...) AS
+ (SELECT ...)
+SELECT ...
+```
+
+- Nested - This subquery is used when you’d like the temporary table to act as a filter within the larger query, which implies that it often sits within the where clause. For example,
+```sql
+SELECT s.s_id, s.s_name, g.final_grade
+FROM student s, grades g
+WHERE s.s_id = g.s_id
+IN (SELECT final_grade FROM grades g WHERE final_grade > 3.7);
+```
+
+- Inline - Similar to the with case, but instead of the temporary table sitting on top of the larger query, it’s embedded within the from clause. For example,
+```sql
+SELECT student_name
+FROM
+  (SELECT student_id, student_name, grade
+   FROM student
+   WHERE teacher =10)
+WHERE grade >80;
+```
+
+- Scalar - This subquery is used when you’d like to generate a scalar value to be used as a benchmark of some sort.
+```sql
+SELECT s.student_name
+  (SELECT AVG(final_score)
+   FROM grades g
+   WHERE g.student_id = s.student_id) AS
+     avg_score
+FROM student s;
+```
+
+With and Nested subqueries are most advantageous for readability.
+
+Scalar subqueries are advantageous for performance and are often used on smaller datasets.
+
+Dependencies:
+A subquery can be dependent on the outer query or independent of the outer query.
+
+(This is the article that the instructor recommends: [Microsoft's Article on Subqueries](https://learn.microsoft.com/en-us/sql/relational-databases/performance/subqueries?view=sql-server-ver15) Note: I'm not sure how applicaable material from this MS article is to standard SQL or PostgreSQL.)
+
+
+
+
