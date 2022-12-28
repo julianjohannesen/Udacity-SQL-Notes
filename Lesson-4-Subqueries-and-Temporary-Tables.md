@@ -110,6 +110,59 @@ A subquery can be dependent on the outer query or independent of the outer query
 
 (This is the article that the instructor recommends: [Microsoft's Article on Subqueries](https://learn.microsoft.com/en-us/sql/relational-databases/performance/subqueries?view=sql-server-ver15) Note: I'm not sure how applicaable material from this MS article is to standard SQL or PostgreSQL.)
 
+### Our First Subquery
 
+Problem:  On an average day, which channels send the most traffic to Parch and Posey?
 
+So, we already know how to see how much total web traffic each channel sends. 
+```sql
+select channel, count(*) as event_count
+from web_events
+group by 1
+```
 
+We can also break this down a little further to the total traffic sent to each channel per day.
+```sql
+select channel, count(*) as event_count, date_trunc('day', occurred_at) as the_day
+from web_events
+group by 1, 3
+order by 1, 3
+```
+
+But if we want to see the average number of events per channel per day, then we have to use a subquery.
+
+We want something like this:
+```sql
+select channel, avg(event_count) as avg_event_count
+from ...
+group by channel
+order by avg_event_count desc
+```
+
+But how do we get event_count? That's where the subquery comes in.
+```sql
+select channel, avg(event_count) as avg_event_count
+from (select 
+        channel,
+        count(*) as event_count, /* Here it is */
+        date_trunc('day', occurred_at) as day
+      from web_events
+      group by 1, 3) as my_subquery
+group by 1
+order by 2 desc
+```
+As you can see, the second query we tried is now the subquery in the solution. That subquery gave us the correct number of total events per day for each channel.
+
+Put another way, in order to get our average, we needed a table that looked like this:
+
+| "channel"  | "event_count" | "day"                 |
+|------------|---------------|-----------------------|
+| "twitter"  | 1             | "2016-05-30 00:00:00" |
+| "adwords"  | 1             | "2016-05-28 00:00:00" |
+| "banner"   | 3             | "2016-05-04 00:00:00" |
+| "twitter"  | 1             | "2016-08-26 00:00:00" |
+| "adwords"  | 1             | "2016-10-25 00:00:00" |
+| "organic"  | 1             | "2016-08-24 00:00:00" |
+| "facebook" | 2             | "2016-09-04 00:00:00" |
+
+And that's what the subquery gave us.
