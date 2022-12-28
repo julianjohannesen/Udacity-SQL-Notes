@@ -165,4 +165,11 @@ Put another way, in order to get our average, we needed a table that looked like
 | "organic"  | 1             | "2016-08-24 00:00:00" |
 | "facebook" | 2             | "2016-09-04 00:00:00" |
 
-And that's what the subquery gave us.
+And that's what the subquery gave us. With this query, we can now get an average for the event_count column per channel.
+
+### Steps when building a subquery:
+1. Build the Subquery: The aggregation of an existing table that you’d like to leverage as a part of the larger query.
+2. Run the Subquery: Because a subquery can stand independently, it’s important to run its content first to get a sense of whether this aggregation is the interim output you are expecting.
+3. Encapsulate and Name: Close this subquery off with parentheses and call it something. In this case, we called the subquery table ‘sub.’
+4. Test Again: Run a SELECT * within the larger query to determine if all syntax of the subquery is good to go.
+5. Build Outer Query: Develop the SELECT * clause as you see fit to solve the problem at hand, leveraging the subquery appropriately.
