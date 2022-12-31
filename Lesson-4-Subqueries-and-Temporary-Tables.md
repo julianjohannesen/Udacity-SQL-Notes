@@ -129,7 +129,7 @@ group by 1, 3
 order by 1, 3
 ```
 
-But if we want to see the average number of events per channel per day, then we have to use a subquery.
+But if we want to see the average number of events per channel per day, then we have to use a subquery, specifically an inline query, which means that the subquery will appear in the FROM clause.
 
 We want something like this:
 ```sql
@@ -173,3 +173,199 @@ And that's what the subquery gave us. With this query, we can now get an average
 3. Encapsulate and Name: Close this subquery off with parentheses and call it something. In this case, we called the subquery table ‘sub.’
 4. Test Again: Run a SELECT * within the larger query to determine if all syntax of the subquery is good to go.
 5. Build Outer Query: Develop the SELECT * clause as you see fit to solve the problem at hand, leveraging the subquery appropriately.
+
+### Subquery Formatting
+A subquery can appear in several different places within a query. In the above example, we saw a subquery in the FROM clause. That's called an **inline** query. But subqueries can appear in many other places. Another place a subquery can appear is in a WHERE clause. When it does, that's called a **nested** subquery.
+
+NOTE: Do not include an alias for your subquery when you write a subquery in a conditional statement. This is because the subquery is treated as an individual value (or set of values in the IN case) rather than as a table. Nested and Scalar subqueries often do not require aliases the way With and Inline subqueries do.
+
+### Problem: Return orders that occurred in the same month as Parch and Posey's first ever order.
+
+To solve this problem we need a query that looks like this:
+```sql
+select * 
+from orders
+where date_trunc('month', occurred_at) = /*month of first ever order order*/
+```
+However, there's no way to get the month of the first ever order without using a subquery.
+
+To get the month of the first ever order we need this:
+```sql
+select date_trunc('month', min(occurred_at)) as min_month
+from orders
+```
+When you put it together, it looks like this:
+```sql
+select * 
+from orders
+where date_trunc('month', occurred_at) = (select date_trunc('month', min(occurred_at)) as min_month
+from orders)
+order by occurred_at
+```
+Why do we have to use a subquery here rather than just inserting the min function into the WHERE clause? Because we can't use aggregations in a WHERE clause. Well, then why can't we use a HAVING clause? I have no idea, but I tried it and it various ways and it doesn't work.
+
+### Problem: Return the average quantities of each type of paper sold in the same month identified in the previous problem.
+
+```sql
+SELECT AVG(standard_qty) avg_std, AVG(gloss_qty) avg_gls, AVG(poster_qty) avg_pst
+FROM orders
+WHERE DATE_TRUNC('month', occurred_at) = 
+     (SELECT DATE_TRUNC('month', MIN(occurred_at)) FROM orders);
+```
+The FROM and WHERE clauses are identical to the ones in the previous problem. What's changed is the SELECT clause. We just need to get the average for each of the paper quantities.
+
+### Problem: Return the total amount spent on all orders in the same month identified in the previous problem.
+
+```sql
+select sum(total_amt_usd)
+from orders
+where date_trunc('month', occurred_at) = (select date_trunc('month', min(occurred_at)) as min_month
+from orders)
+```
+Again, the FROM and WHERE clauses are identical to the previous problem. What's changed is the SELECT clause. We just need to get the sum of the total amount of money spent.
+
+### Dependencies: Simple versus Correlated Subqueries
+**Simple Subquery**: The inner subquery is completely independent of the larger query.
+
+**Correlated Subquery**: The inner subquery is dependent on the larger query. 
+
+Correlated subqueries are used for row-by-row processing. Each subquery is executed once for every row of the outer query. 
+
+With a normal nested subquery, the inner SELECT query runs first and executes once, returning values to be used by the main query. A correlated subquery, however, executes once for each candidate row considered by the outer query. In other words, the inner query is driven by the outer query. 
+
+A correlated subquery is one way of reading every row in a table and comparing values in each row against related data.  It is used whenever a subquery must return a different result or set of results for each candidate row considered by the main query.
+
+Here's the general form of a correlated subquery:
+```sql
+SELECT column1, column2, ....
+FROM table1 outer
+WHERE column1 operator
+                    (SELECT column1, column2
+                     FROM table2
+                     WHERE expr1 = outer.expr2);
+```
+
+Simple subqueries are easier to read. However, some problems require that you use a correlated subquery. 
+
+Other subqueries could be written either way: as a simple subquery or as a correlated subquery. The lesson provides an example using an employee database.
+
+First, here's the simple subquery version:
+```sql
+WITH dept_average AS 
+  (SELECT dept, AVG(salary) AS avg_dept_salary
+   FROM employee
+   GROUP BY employee.dept
+  )
+SELECT E.eid, E.ename, D.avg_dept_salary
+FROM employee E
+JOIN dept.average D
+ON E.dept = D.dept
+WHERE E.salary > D.avg_dept_salary
+```
+And here's the correlated subquery version:
+```sql
+SELECT employee_id, name
+FROM employees_db emp
+WHERE salary > (SELECT AVG(salary)
+                FROM employees_db
+                WHERE department = emp.department);
+```
+
+Here's another example. Imagine that you want to get the first and last name of each student, their GPA, and the university that they attend from a database. However, you only want students whose GPA is higher than the average GPA of all students at that particular university. In other words, if you're looking at a student from Ohio State University, you want to know that this student has a higher GPA than the average OSU student.
+
+To do this, you'll need a subquery in which you calculate the average GPA
+```sql
+SELECT first_name, last_name, GPA, university
+FROM student_db outer_db
+WHERE GPA > (SELECT AVG(GPA) 
+            FROM student_db 
+            WHERE university = outer_db.university);
+```
+
+### Views
+Assume you run a complex query to fetch data from multiple tables. Now, you’d like to query again on the top of the result set. And later, you’d like to query more on the same result set returned earlier. So, there arises a need to store the result set of the original query, so that you can re-query it multiple times. This necessity can be fulfilled with the help of views.
+
+Views are virtual tables that are derived from the tables in the db.
+
+The general form is:
+```sql
+CREATE VIEW <VIEW_NAME>
+AS
+SELECT …
+FROM …
+WHERE …
+```
+### Problem: Suppose you are managing sales representatives who are looking after the accounts in the Northeast region only. The details of such a subset of sales representatives can be fetched from two tables, and stored as a view:
+```sql
+create view v1
+as
+select S.id, S.name as Rep_Name, R.name as Region_Name
+from sales_reps S
+join region R
+/*FYI to myself - I completely forgot that you can do this */
+on S.region_id = R.id and R.name = 'Northeast';
+```
+### Problem: Provide the name for each region for every order, as well as the account name and the unit price they paid (total_amt_usd/total) for the order. Your final result should have 3 columns: region name, account name, and unit price. Store this as a view.
+```sql
+CREATE VIEW V2
+AS
+SELECT r.name region, a.name account, 
+       o.total_amt_usd/(o.total + 0.01) unit_price
+FROM region r
+JOIN sales_reps s
+ON s.region_id = r.id
+JOIN accounts a
+ON a.sales_rep_id = s.id
+JOIN orders o
+ON o.account_id = a.id;
+```
+Points to Remember
+
+Can we update the base tables by updating a view?
+
+Since views do not exist physically in the database, it is may or may not be possible to execute UPDATE operations on views. It depends on the SELECT query used in the view definition. Generally, if the SELECT statement contains either an AGGREGATE function, GROUPING, or JOIN, then the view may not update the underlying base tables.
+
+Can we insert or delete a tuple in the base table by inserting or deleting a tuple in a view?
+
+Again, it depends on the view definition. If a view is created from a single base table, then yes, you can insert/delete tuples by doing so in the view.
+
+Can we alter the view definition?
+
+Most of the databases allow you to alter a view. For example, Oracle and IBM DB2 allows us to alter views and provides CREATE OR REPLACE VIEW option to redefine a view.
+
+### Problem: What is the top channel used by each account to market products?
+First, I get all channels per account name with a count of the channel, like this:
+```sql
+select a.name as name, channel as channel, count(channel) as channel_count
+from web_events we
+join accounts a
+on we.account_id = a.id
+group by 1, 2
+order by 1, 3
+```
+But what I need is not all of the channels for each account, but just the top channel - the channel with the largest count. So, I sort of want this max(count(channel)). You can't do that. You can't aggregate on an aggregation.
+
+Do I need to isolate this part?
+```sql
+select count(channel) as channel_count from web_events
+```
+So that I can do this:
+```sql
+select a.name, we.channel, max(sub.channel_count)
+```
+It turns out, no. I actually want almost the entire query to be in the subquery, so that the outer query just grabs a couple of things from the subquery, and most importantly, applies max(sub.channel_count). It looks like this:
+```sql
+select sub.name, sub.channel, max(sub.channel_count)
+from (
+  select a.name as name, channel as channel, count(channel) as channel_count
+  from web_events we
+  join accounts a
+  on we.account_id = a.id
+  group by 1, 2
+  order by 1, 3
+) as sub
+group by 1
+
+```
+One of the things that tripped me up is that I wanted the channel name to be in the query. You can't do that, because if you add sub.channel to the SELECT clause in the outer query, then you have to add it to the GROUP BY clause, which messes things up and just ends up giving you as a result the subquery again. I don't really get that, but that's what happened when I tried it.
+
