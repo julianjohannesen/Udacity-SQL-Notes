@@ -355,17 +355,50 @@ select a.name, we.channel, max(sub.channel_count)
 ```
 It turns out, no. I actually want almost the entire query to be in the subquery, so that the outer query just grabs a couple of things from the subquery, and most importantly, applies max(sub.channel_count). It looks like this:
 ```sql
-select sub.name, sub.channel, max(sub.channel_count)
+select sub.name, max(sub.channel_count)
 from (
   select a.name as name, channel as channel, count(channel) as channel_count
   from web_events we
   join accounts a
   on we.account_id = a.id
-  group by 1, 2
+  group by 1
   order by 1, 3
 ) as sub
 group by 1
 
 ```
-One of the things that tripped me up is that I wanted the channel name to be in the query. You can't do that, because if you add sub.channel to the SELECT clause in the outer query, then you have to add it to the GROUP BY clause, which messes things up and just ends up giving you as a result the subquery again. I don't really get that, but that's what happened when I tried it.
+One of the things that tripped me up is that I wanted the channel name to be in the query. You can't do that without adding another subquery, because if you add sub.channel to the SELECT clause in the outer query, then you have to add it to the GROUP BY clause, which messes things up and just ends up giving you as a result the subquery again. I don't really get that, but that's what happened when I tried it.
 
+Problem: How often was the same channel used?
+So now we have the MAX usage number for a channel for each account. Now we can use this to filter the original table to find channels for each account that match the MAX amount for their account.
+
+This is what it looks like:
+```sql
+/* In the end we want to end up with a table of id, name, the most frequently used channel, and the count of that channel */
+SELECT t3.id, t3.name, t3.channel, t3.ct
+/* This subquery provides a table with the id, name, all channels, and the count for each channel, aliased as ct */
+FROM (SELECT a.id, a.name, we.channel, COUNT(*) ct
+     FROM accounts a
+     /* To get account names, we need to join the accounts table with the web_events table. The order doesn't matter. You can select from web_events and then join accounts or select from accounts and then join web_events. */
+     JOIN web_events we
+     On a.id = we.account_id
+     /* To group by name and channel type, we need to GROUP BY right here. This tells the db how we want to split up the channel count. */
+     GROUP BY a.id, a.name, we.channel) t3
+/* Now we have to JOIN another subquery that provides a table of the id, name and the MAX count as max_chan. This subquery doesn't provide the channel name.  */
+JOIN (
+  SELECT t1.id, t1.name, MAX(ct) max_chan
+  /* The query above is created using the same subquery that we earlier aliased as t3. But we have to repeat it here and alias it as t1. */
+  FROM (
+    SELECT a.id, a.name, we.channel, COUNT(*) ct
+    FROM accounts a
+    JOIN web_events we
+    ON a.id = we.account_id
+    GROUP BY a.id, a.name, we.channel
+    ) t1
+  /* This time we just group by id and name */
+  GROUP BY t1.id, t1.name
+) t2
+/* We join our two queries on the id key and also on the condition that max_chan from t2 is equal to ct from t3. */
+ON t2.id = t3.id AND t2.max_chan = t3.ct
+ORDER BY t3.id;
+```
