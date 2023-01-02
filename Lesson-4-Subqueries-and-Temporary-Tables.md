@@ -367,7 +367,7 @@ from (
 group by 1
 
 ```
-One of the things that tripped me up is that I wanted the channel name to be in the query. You can't do that without adding another subquery, because if you add sub.channel to the SELECT clause in the outer query, then you have to add it to the GROUP BY clause, which messes things up and just ends up giving you as a result the subquery again. I don't really get that, but that's what happened when I tried it.
+One of the things that tripped me up is that I wanted the channel name to be in the query. You can't do that without adding another subquery, because if you add sub.channel to the SELECT clause in the outer query, then you have to add it to the GROUP BY clause, which messes things up and just ends up giving you as a result the subquery again. I don't really get why that is, but that's what happened when I tried it.
 
 Problem: How often was the same channel used?
 So now we have the MAX usage number for a channel for each account. Now we can use this to filter the original table to find channels for each account that match the MAX amount for their account.
@@ -384,7 +384,7 @@ FROM (SELECT a.id, a.name, we.channel, COUNT(*) ct
      On a.id = we.account_id
      /* To group by name and channel type, we need to GROUP BY right here. This tells the db how we want to split up the channel count. */
      GROUP BY a.id, a.name, we.channel) t3
-/* Now we have to JOIN another subquery that provides a table of the id, name and the MAX count as max_chan. This subquery doesn't provide the channel name.  */
+/* Now we have to JOIN another subquery that provides a table of the id, name, and the MAX count as max_chan. This subquery doesn't provide the channel name.  */
 JOIN (
   SELECT t1.id, t1.name, MAX(ct) max_chan
   /* The query above is created using the same subquery that we earlier aliased as t3. But we have to repeat it here and alias it as t1. */
@@ -398,7 +398,18 @@ JOIN (
   /* This time we just group by id and name */
   GROUP BY t1.id, t1.name
 ) t2
-/* We join our two queries on the id key and also on the condition that max_chan from t2 is equal to ct from t3. */
+/* We join our two queries on the id key and also on the condition that max_chan from t2 is equal to ct from t3. That condition is what allows us to see the channel name and the max count.*/
 ON t2.id = t3.id AND t2.max_chan = t3.ct
 ORDER BY t3.id;
 ```
+This is pretty long. I'm sure there's a way to reuse t3/t1, maybe with a with clause or a view.
+
+One more time, but factoring out the t3/t1 subquery
+```sql
+SELECT t3.id, t3.name, t3.channel, t3.ct
+FROM t3
+JOIN (SELECT t1.id, t1.name, MAX(ct) max_chan
+      FROM t1
+      GROUP BY t1.id, t1.name) t2
+ON t2.id = t3.id AND t2.max_chan = t3.ct
+ORDER BY t3.id;
