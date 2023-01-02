@@ -413,3 +413,96 @@ JOIN (SELECT t1.id, t1.name, MAX(ct) max_chan
       GROUP BY t1.id, t1.name) t2
 ON t2.id = t3.id AND t2.max_chan = t3.ct
 ORDER BY t3.id;
+```
+This makes it a little bit clearer to me. 
+
+### Problems from section 4.17 and their solutions
+
+1. Provide the name of the sales_rep in each region with the largest amount of total_amt_usd sales.
+
+Rephrase: There's one sales rep in each region who has the largest total sales in that region, beating all other sales reps in that region. Get the name of that person for each region.
+```sql
+/* First, get sales reps names and regions and total sales per sales rep. Order it by region and total sales (desc) to see who in each region has the best sales. */
+
+/*
+select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
+from sales_reps sr
+join region r
+on sr.region_id = r.id
+join accounts a
+on a.sales_rep_id = sr.id
+join orders o
+on o.account_id = a.id
+group by 1,2,3
+order by reg_name, total_sales desc
+*/
+
+/* Next, get the max total sales per region */
+/*
+select sub.reg_name, max(sub.total_sales) as max_sales
+from (select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
+	from sales_reps sr
+	join region r
+	on sr.region_id = r.id
+	join accounts a
+	on a.sales_rep_id = sr.id
+	join orders o
+	on o.account_id = a.id
+	group by 1,2,3
+	order by reg_name, total_sales desc) as sub
+group by 1
+order by 1
+*/
+
+/* Finally, join the above to queries to get the sales rep name from the first query and the region and max total sales from the second query. I'm joining on the region name from each query, because that's the only thing they have in common, but maybe I should have used region id. */
+select sub1.sr_name, sub2.reg_name, sub2.max_sales
+from (select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
+		from sales_reps sr
+		join region r
+		on sr.region_id = r.id
+		join accounts a
+		on a.sales_rep_id = sr.id
+		join orders o
+		on o.account_id = a.id
+		group by 1,2,3
+		order by reg_name, total_sales desc) as sub1
+join (select sub.reg_name, max(sub.total_sales) as max_sales
+		from (select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
+			from sales_reps sr
+			join region r
+			on sr.region_id = r.id
+			join accounts a
+			on a.sales_rep_id = sr.id
+			join orders o
+			on o.account_id = a.id
+			group by 1,2,3
+			order by reg_name, total_sales desc) as sub
+		group by 1) as sub2
+on sub1.reg_name = sub2.reg_name and sub1.total_sales = sub2.max_sales
+
+```
+
+2. For the region with the largest (sum) of sales total_amt_usd, how many total (count) orders were placed?
+```sql
+
+```
+
+3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
+```sql
+
+```
+
+4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
+```sql
+
+```
+
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+```sql
+
+```
+
+6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders?
+```sql
+
+```
