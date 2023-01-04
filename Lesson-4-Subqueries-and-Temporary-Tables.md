@@ -456,36 +456,141 @@ order by 1
 
 /* Finally, join the above to queries to get the sales rep name from the first query and the region and max total sales from the second query. I'm joining on the region name from each query, because that's the only thing they have in common, but maybe I should have used region id. */
 select sub1.sr_name, sub2.reg_name, sub2.max_sales
-from (select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
-		from sales_reps sr
-		join region r
-		on sr.region_id = r.id
-		join accounts a
-		on a.sales_rep_id = sr.id
-		join orders o
-		on o.account_id = a.id
-		group by 1,2,3
-		order by reg_name, total_sales desc) as sub1
-join (select sub.reg_name, max(sub.total_sales) as max_sales
-		from (select sr.id as sr_id, sr.name as sr_name, r.name as reg_name, sum(o.total_amt_usd) as total_sales
-			from sales_reps sr
-			join region r
-			on sr.region_id = r.id
-			join accounts a
-			on a.sales_rep_id = sr.id
-			join orders o
-			on o.account_id = a.id
-			group by 1,2,3
-			order by reg_name, total_sales desc) as sub
-		group by 1) as sub2
-on sub1.reg_name = sub2.reg_name and sub1.total_sales = sub2.max_sales
+from (
+      select sr.id as sr_id, 
+              sr.name as sr_name, 
+              r.name as reg_name, 
+              sum(o.total_amt_usd) as total_sales
+      from sales_reps sr
+      join region r
+      on sr.region_id = r.id
+      join accounts a
+      on a.sales_rep_id = sr.id
+      join orders o
+      on o.account_id = a.id
+      group by 1,2,3
+      ) as sub1
+join (
+      select sub.reg_name, 
+             max(sub.total_sales) as max_sales
+      from (
+            select sr.id as sr_id, 
+                  sr.name as sr_name, 
+                  r.name as reg_name, 
+                  sum(o.total_amt_usd) as total_sales
+            from sales_reps sr
+            join region r
+            on sr.region_id = r.id
+            join accounts a
+            on a.sales_rep_id = sr.id
+            join orders o
+            on o.account_id = a.id
+            group by 1,2,3
+            ) as sub
+      group by 1
+    ) as sub2
+on sub1.reg_name = sub2.reg_name
+and sub1.total_sales = sub2.max_sales
 
 ```
 
 2. For the region with the largest (sum) of sales total_amt_usd, how many total (count) orders were placed?
-```sql
 
+Rephrase: How many orders have been placed in the top selling region? Sounds like they just want a number.
+- Which is the top selling region?
+- How many orders have been placed in that region?
+
+You can see the top performing Northeast in the table resulting from this query:
+```sql
+select r.name as region_name, count(*) as total_orders, sum(total_amt_usd) as total_sales
+from orders o
+join accounts a
+on o.account_id = a.id
+join sales_reps sr
+on a.sales_rep_id = sr.id
+join region r
+on sr.region_id = r.id
+group by 1
 ```
+But how do we return just the number of orders for the Northeast? The simple solution is to use ORDER BY and LIMIT to return just the Northeast from the query above. However, that's not in the spirit of practicing our subquery skills.
+
+This was very difficult for me. I thought we could do something similar to what we did in problem 1 and join the above query with a second query shown below that returns the max(sub.total_sales):
+```sql
+select max(sub.total_sales) as max_sales
+from (
+  select r.name as region_name, 
+         sum(total_amt_usd) as total_sales
+  from orders o
+  join accounts a
+  on o.account_id = a.id
+  join sales_reps sr
+  on a.sales_rep_id = sr.id
+  join region r
+  on sr.region_id = r.id
+  group by 1
+) as sub
+group by 1
+```
+The join would look like this:
+```sql
+select sub1.region_name, sub1.total_orders
+from (
+  select r.name as region_name, 
+         count(*) as total_orders, 
+         sum(total_amt_usd) as total_sales
+  from orders o
+  join accounts a
+  on o.account_id = a.id
+  join sales_reps sr
+  on a.sales_rep_id = sr.id
+  join region r
+  on sr.region_id = r.id
+  group by 1
+  ) as sub1
+join (
+    select max(sub.total_sales) as max_sales
+    from (
+        select r.name as region_name,  
+               sum(total_amt_usd) as total_sales
+        from orders o
+        join accounts a
+        on o.account_id = a.id
+        join sales_reps sr
+        on a.sales_rep_id = sr.id
+        join region r
+        on sr.region_id = r.id
+        group by 1
+    ) as sub
+) as sub2
+on sub1.total_sales = sub2.max_sales
+```
+It works! The thing that threw me was that in the ON clause you need to specify that you only want to join on the condition that the total_sales from "sub1" is equal to the max_sales from "sub2" even though you're not displaying total or max sales. 
+
+The suggested solution is different. That solution uses a HAVING clause:
+```sql
+SELECT r.name as region_name, COUNT(o.total) total_orders
+FROM sales_reps sr
+JOIN accounts a
+ON a.sales_rep_id = sr.id
+JOIN orders o
+ON o.account_id = a.id
+JOIN region r
+ON r.id = sr.region_id
+GROUP BY 1
+HAVING SUM(o.total_amt_usd) = (
+      SELECT MAX(total_amt)
+      FROM (SELECT r.name region_name, 
+                   SUM(o.total_amt_usd) total_amt
+              FROM sales_reps s
+              JOIN accounts a
+              ON a.sales_rep_id = s.id
+              JOIN orders o
+              ON o.account_id = a.id
+              JOIN region r
+              ON r.id = s.region_id
+              GROUP BY r.name) sub);
+```
+Here, we're getting the total_orders by region, but then we're using the HAVING clause to filter that down to just the region with the highest total sales. We need a subquery to do that.
 
 3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
 ```sql
