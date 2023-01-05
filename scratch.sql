@@ -68,3 +68,42 @@ join (
     ) as sub2
 on sub1.reg_name = sub2.reg_name 
 and sub1.total_sales = sub2.max_sales
+
+/* for problem 3 */
+select a.name, 
+       sum(o.total) as total_all_types, 
+       sum(o.standard_qty) as total_standard
+from accounts a
+join orders o
+on o.account_id = a.id
+group by 1
+having sum(o.total) > (
+                       select max(sub.total_standard)
+                       from (
+                             select sum(o.standard_qty) as total_standard
+                             from orders o
+                       ) as sub
+                      )
+order by 3 desc
+
+-- for problem 4 in 4.17 - 
+
+-- Geta the amount of money spent by the company that spent the most on paper
+select max(total_spent)
+from (
+	select a.name as account_name, 
+	   	   sum(o.total_amt_usd) as total_spent
+	from accounts a
+	join orders o
+	on o.account_id = a.id
+	group by 1
+	) as sub
+
+-- Get the account, channels, and count per channel of events 
+select a.name as account_name,
+	we.channel as channel,
+	count(*)
+from accounts a
+join web_events we
+on we.account_id = a.id
+group by 1, 2

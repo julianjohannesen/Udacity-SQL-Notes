@@ -593,13 +593,61 @@ HAVING SUM(o.total_amt_usd) = (
 Here, we're getting the total_orders by region, but then we're using the HAVING clause to filter that down to just the region with the highest total sales. We need a subquery to do that.
 
 3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
-```sql
 
+Rephrase: How many accounts has total purchases that were greater than the account with the most standard paper purchased? 
+- Which account purchased the most standard paper
+- Which accounts purchased more paper (of all types) than the answer to the previous question
+
+We can write a query to get account names and the sum of the total quantities of all types of paper purchased, grouped by account. When I was working on this, I also threw in the sum of standard paper bought. That way, I can check my work. That's the outer query.
+
+Then, in the HAVING clause, we need to filter down to accounts that have bought more total paper of all types than the the quantity of standard paper bought by the account that bought the most standard paper out of all accounts. This is confusing. What we're ultimately looking for is a list of accounts, but what we're comparing here is two quantities. On the left-hand side of the comparison operator we need the sum quantity of all types of paper. On the right-hand side we need the quantity of standard paper purchased by the account that purchased the most standard paper by quantity. That requires a subquery. That subquery forms the right-hand side of the equality in the HAVING clause below. It took me a moment to realize that we can just select max(sub.total_standard). We don't have to worry about including account names. Account names are included in the sub-subquery (called "sub"), and in "sub" we group by those account names. So, when the MAX function does its work, it's getting us the right thing.
+```sql
+select a.name, 
+       sum(o.total) as total_all_types, 
+       sum(o.standard_qty) as total_standard
+from accounts a
+join orders o
+on o.account_id = a.id
+group by 1
+having sum(o.total) > (select max(sub.total_standard) 
+					   from (select a.name, sum(o.standard_qty) as total_standard 
+							 from orders o
+							 join accounts a
+							 on o.account_id = a.id
+							 group by 1
+							) as sub
+					  )
+order by 3 desc
 ```
 
 4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
-```sql
 
+Rephrase: How many web events per channel did the customer who spent the most money over their customer lifetime have?
+
+After a lot of messing around and trying out different things, I eventually figured out that I needed to use a subquery to get just the name of the company that spent the most on paper and use that subquery on the right-hand side of a HAVING clause with an equality operator. On the left-hand side is the name of the company. The outer query just need to get the events per channel per company.
+```sql
+/* web events per channel per company */
+select 
+  a.name as account_name,
+  we.channel as channel,
+  count(*) as count
+from web_events we
+join accounts a
+on we.account_id = a.id
+join orders o
+on o.account_id = a.id
+group by 1, 2
+having a.name = (
+	select 
+		sub.account_name from (select a.name as account_name, 
+		sum(o.total_amt_usd) as total_spent
+  from accounts a
+	join orders o
+	on o.account_id = a.id
+	group by 1
+	order by 2 desc
+	limit 1) as sub
+);
 ```
 
 5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
