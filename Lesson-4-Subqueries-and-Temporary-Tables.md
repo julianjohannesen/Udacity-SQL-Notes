@@ -650,9 +650,60 @@ having a.name = (
 );
 ```
 
-5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+Except that I was wrong. The actual answer is:
 ```sql
+SELECT 
+  a.name, 
+  w.channel, 
+  COUNT(*)
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id 
+AND a.id =  (
+  SELECT id
+  FROM (
+    SELECT 
+      a.id, 
+      a.name, 
+      SUM(o.total_amt_usd) tot_spent
+    FROM orders o
+    JOIN accounts a
+    ON a.id = o.account_id
+    GROUP BY a.id, a.name
+    ORDER BY 3 DESC
+    LIMIT 1) inner_table)
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+```
 
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+
+Rephrase: Get the average amount spent by the top 10 accounts in terms of lifetime spending.
+
+I know I'll need a subquery for the top 10 accounts in terms of total spending, so here it is:
+```sql
+select a.name as account_name, sum(o.total_amt_usd) as total_spending
+from accounts a
+join orders o
+on o.account_id = a.id
+group by 1
+order by 2 desc
+limit 10
+```
+Then the outer query would just be the select statement and the subquery would go in the FROM clause:
+```sql
+select avg(sub.total_spending)
+from (
+	select 
+		a.name as account_name, 
+		sum(o.total_amt_usd) as total_spending
+	from accounts a
+	join orders o
+	on o.account_id = a.id
+	group by 1
+	order by 2 desc
+	limit 10
+) as sub;
 ```
 
 6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders?
