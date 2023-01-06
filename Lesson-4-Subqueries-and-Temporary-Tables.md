@@ -634,23 +634,26 @@ select
 from web_events we
 join accounts a
 on we.account_id = a.id
-join orders o
-on o.account_id = a.id
+/* I had an extra join here at first and it messes everything up */
+-- join orders o
+-- on o.account_id = a.id
 group by 1, 2
 having a.name = (
 	select 
-		sub.account_name from (select a.name as account_name, 
-		sum(o.total_amt_usd) as total_spent
-  from accounts a
-	join orders o
-	on o.account_id = a.id
-	group by 1
-	order by 2 desc
-	limit 1) as sub
+		sub.account_name 
+    from (
+      select 
+        a.name as account_name, 
+		    sum(o.total_amt_usd) as total_spent
+      from accounts a
+	  join orders o
+	  on o.account_id = a.id
+	  group by 1
+	  order by 2 desc
+	  limit 1) as sub
 );
 ```
-
-Except that I was wrong. The actual answer is:
+Except that this is not the answer given in the lesson. The answer given in the lesson is a bit different.
 ```sql
 SELECT 
   a.name, 
@@ -672,6 +675,41 @@ AND a.id =  (
     GROUP BY a.id, a.name
     ORDER BY 3 DESC
     LIMIT 1) inner_table)
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+```
+Let's annotate that to see if I can figure out what they did.
+```sql
+/* Begin by getting the customer name, channels, and count of web events for each channel */
+SELECT 
+  a.name, 
+  w.channel, 
+  COUNT(*)
+FROM accounts a
+JOIN web_events w
+/* The accounts and web_events tables have to be joined on a.id and w.account_id */
+ON a.id = w.account_id 
+/* And also on a.id and ... */
+AND a.id =  (
+  /* ...the account id ... */
+  SELECT id
+  /* ...pulled from the inner_table. That inner_table gets...  */
+  FROM (
+    /* ... account id and name and total spent */
+    SELECT 
+      a.id, 
+      a.name, 
+      SUM(o.total_amt_usd) tot_spent
+    FROM orders o
+    JOIN accounts a
+    ON a.id = o.account_id
+    /* grouped by account id and name. This ensures that the spending is broken out by account */
+    GROUP BY a.id, a.name
+    /* ordered by tot_spent descending */
+    ORDER BY 3 DESC
+    /* and get just the top spender */
+    LIMIT 1) inner_table)
+/* The outer query is grouped by account name and web channel */
 GROUP BY 1, 2
 ORDER BY 3 DESC;
 ```
