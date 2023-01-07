@@ -791,3 +791,92 @@ FROM (
 ) sub;
 ```
 
+### Subquery Tradeoffs
+
+Most queries can be solved in a wide variety of ways, so, when writing a query, it's important to consider:
+- Readability: How easy is it for someone else to understand
+- Performance: How quickly is it executed
+    - Example: Correlated subqueries (which are interdependent on outer query) are often slower than "with" subqueries (which create a temporary view)
+- What the DB is actually doing: 
+- DRYness: Where you might need to use a subquery multiple times
+
+See Chapter 8 of the MySQL Reference Manual for more information on optimization: https://dev.mysql.com/doc/refman/8.0/en/optimization.html
+
+(Sure. I'll get on that right away. Let me just run an read all of the books written about SQL instead of you explaining it to me. /endcomplaint)
+
+### Subquery Strategy
+
+1. Do I really a subquery or might a join or aggregation suffice?
+2. If a subquery is necessary, what's the best placement: "with", nested, inline, or scalar?
+
+### With Subqueries
+
+When should you use it:
+- When you want to create a version of a table to be used in the larger query (e.g. aggregated daily prices to an average price table)
+
+Advantages:
+- Scoped
+- Easy to read
+
+Here's an example:
+```sql
+WITH average_price as
+( 
+  SELECT 
+    brand_id, 
+    AVG(product_price) as brand_avg_price
+  FROM 
+    product_records
+  /* Why is there no group by statement here? Should we see GROUP BY brand_id? */
+),
+SELECT 
+  a.brand_id, 
+  a.total_brand_sales, 
+  b.brand_avg_price
+FROM brand_table a
+JOIN average_price b
+ON b.brand_id = a.brand_id
+ORDER BY a.total_brand_sales desc;
+```
+
+**CTE** stands for Common Table Expression. A Common Table Expression in SQL allows you to define a temporary result, such as a table, to then be referenced in a later part of the query.
+
+Problem: Get average events per channel per day.
+
+Solution with nested query:
+```sql
+SELECT 
+  channel, 
+  AVG(events) AS average_events
+FROM (
+  SELECT 
+    DATE_TRUNC('day',occurred_at) AS day,
+    channel, 
+    COUNT(*) as events
+  FROM web_events 
+  GROUP BY 1,2
+) sub
+GROUP BY channel
+ORDER BY 2 DESC;
+```
+Solution with WITH clause:
+```sql
+WITH events AS (
+  SELECT 
+    DATE_TRUNC('day',occurred_at) AS day, 
+    channel,
+    /* In the outer query, we use events to get avg(events) */ 
+    COUNT(*) as events
+  FROM web_events 
+  GROUP BY 1,2
+)
+SELECT 
+  channel, 
+  AVG(events) AS average_events
+/* Notice that the CTE "events" has the same name as the column "events" and it doesn't seem to matter. */
+/* Also, you don't refer in the SELECT statement to events.events, because there aren't any other tables. Just "events" is enough. */
+/* Also notice that you aren't JOINing your subquery with web_events. You're just using the subquery as the FROM table*/
+FROM events
+GROUP BY channel
+ORDER BY 2 DESC;
+```
