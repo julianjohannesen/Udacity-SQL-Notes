@@ -745,6 +745,49 @@ from (
 ```
 
 6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders?
-```sql
 
+Rephrase: On average, what did the customers who spent more than the average spending of all customers spend?
+- What was the average spending among all customers?
+- What was the average spending of customers who spent more than that?
+
+Start with the subquery about the average spending of all customers
+```sql
+select avg(o.total_amt_usd)
+from orders o
 ```
+Now use that subquery in an outer query that gets all of the accounts that spent more than the average and what that average is.
+```sql
+SELECT o.account_id, AVG(o.total_amt_usd)
+FROM orders o
+GROUP BY 1
+HAVING AVG(o.total_amt_usd) > 
+  /* average spending per customer over lifetime */
+  (
+    SELECT AVG(o.total_amt_usd) avg_all
+    FROM orders o
+  );
+```
+Now average the spending by just those accounts.
+```sql
+-- Get average spending of the average spending of a subset of accounts 
+SELECT AVG(avg_amt)
+/* Get account ids and average spending per account id, but filtering down to just those account ids HAVING average spending greater than the overall average spending by all accounts */
+FROM (
+  SELECT 
+    o.account_id, 
+    AVG(o.total_amt_usd) avg_amt
+  FROM orders o
+  -- We want average spending per account
+  GROUP BY 1
+  -- We want to filter down to...
+  HAVING 
+    -- Average spending greater than...
+    AVG(o.total_amt_usd) > (
+      /* Overall, average spending, i.e. sum of all spending divided by the total number of accounts */
+      SELECT 
+        AVG(o.total_amt_usd) avg_all
+      FROM orders o
+    )
+) sub;
+```
+
