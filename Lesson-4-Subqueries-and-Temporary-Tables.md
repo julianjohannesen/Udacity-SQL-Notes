@@ -1008,7 +1008,7 @@ In this solution, t1 only gets region name and total sales. It doesn't get a cou
 
 3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
 
-Rephrase: In the end we just want a number - the number of accounts that meet a certain condition. The condition is having total purchases of any type of paper (in terms I think of quantity, not spending) greater than another account. That other account is the account that has bought the most standard paper over its lifetime. So, we'll have to compare how much (of any type of paper) was purchased by a bunch of accounts to how much (just standard paper) was purchased by this other account, and filter out the ones that bought less.
+Rephrase: In the end we just want a number - the number of accounts that meet a certain condition. The condition is having total purchases of any type of paper (in terms I think of quantity, not spending) greater than another account. That other account is the account that has bought the most standard paper over its lifetime. So, the way I read it is that we'll have to compare how much (of any type of paper) was purchased by a bunch of accounts to how much (just standard paper) was purchased by this other account, and filter out the ones that bought less. At least two people have told me that I'm misreading this and that the comparison should be between total quantities.
 
 ```sql
 with 
@@ -1035,7 +1035,9 @@ from t1
 join t2
 on t1.total_qty_all > t2.max_total
 ```
-Once again, the suggested answer is a bit different. In my solution, I create two subquery and JOIN them in the outer query with an ON clause that contains the condition. Event though it provides the correct answer, I think mine is probably wrong, but it's very readable to me, which is why I like it. Anyway, the suggested solution uses t1 to get the account with the greatest purchase quantity of standard paper, along with that figure and also the figure for total purchases. It uses t2 to get the account names of the accounts HAVING sum(o.total) > (select total_std from t1). Then in the outer query, it gets the count of those accounts to give the answer. You have to do it this way in this solution. I tried removing the outer query and just doing the count in t2 and I couldn't get that to work.
+Once again, the suggested answer is a bit different. In my solution, I create two subqueries and JOIN them in the outer query with an ON clause that contains the condition. Event though it provides the correct answer, I think mine is probably wrong, but it's very readable to me, which is why I like it. 
+
+Anyway, the suggested solution uses t1 to get the account with the greatest purchase quantity of standard paper, along with that figure and also the figure for total purchases. It uses t2 to get the account names of the accounts HAVING sum(o.total) > (select total from t1). Then in the outer query, it gets the count of those accounts to give the answer.
 
 ```sql
 WITH 
@@ -1067,40 +1069,56 @@ SELECT COUNT(*)
 FROM t2;
 ```
 
-**PLEASE NOTE**: The suggested solution has a typo that I've corrected here. In the course the HAVING clause accidentally uses "total" instead of "total_std". This results in an incorrect answer of 3. The correct answer is 6.
+**PLEASE NOTE**: The suggested solution compares total quantites of all types of paper, thus inn the course materials the HAVING clause uses "total" instead of "total_std". This results in an answer of 3. I interpreted the question to be asking us to compare total quantity to only standard quantity. The correct answer in that case is 6.
 
 4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
 ```sql
+WITH t1 AS (
+   -- Get the id and name for the top spending account
+   SELECT 
+    a.id, 
+    a.name, 
+    SUM(o.total_amt_usd) tot_spent
+   FROM orders o
+   JOIN accounts a
+   ON a.id = o.account_id
+   GROUP BY 1, 2
+   ORDER BY 3 DESC
+   LIMIT 1
+   )
+-- Get the name, channels, and event count for all accounts
+SELECT 
+  a.name, 
+  w.channel, 
+  COUNT(*)
+FROM accounts a
+JOIN web_events w
+-- I was so close! Join on id and to filter down also join on id from t1
+ON a.id = w.account_id AND a.id =  (SELECT id FROM t1)
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+```
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+
+I think the course materials had the wrong answer for this one. Their answer just returns a single average. Mine returns the top 10.
+```sql
 with 
   t1 as (
-    -- Get id, name and total sales for the top spending account
-    select 
-      a.id as account_id
-      a.name as account_name
-      sum(o.total_amt_usd) as total_sales
+    select
+      a.name account_name,
+      sum(o.total_amt_usd) total_spent
     from accounts a
     join orders o
     on o.account_id = a.id
-    group by 1 
-    order by 2 desc
-    limit 1
+    group by 1
 )
--- Get total events by channel
 select 
-  we.channel, 
-  count(*) events
-from web_events we
+  account_name, 
+  avg(total_spent)
+from t1
 group by 1
-having we.account_id = (select account_id from t1)
-```
-5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
-```sql
-with x as (
-  select x
-  from x
-)
-select x
-from x
+order by 2 desc
+limit 10
 ```
 6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders.
 ```sql
