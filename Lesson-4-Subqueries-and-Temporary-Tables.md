@@ -880,3 +880,235 @@ FROM events
 GROUP BY channel
 ORDER BY 2 DESC;
 ```
+
+It's also possible to create multiple tables with WITH:
+```sql
+WITH table1 AS (
+          SELECT *
+          FROM web_events),
+
+     table2 AS (
+          SELECT *
+          FROM accounts)
+
+
+SELECT *
+FROM table1
+JOIN table2
+ON table1.account_id = table2.id;
+```
+
+### WITH Problems
+
+1. Provide the name of the sales_rep in each region with the largest amount of total_amt_usd sales.
+
+Rephrase: Who in each region got the most sales for all time?
+  - Each region has a sales rep who performed better than other sales reps in terms of total sales in that region
+  - In each region
+    - A sales rep performed better 
+      - than other reps
+        - In that region
+
+```sql
+WITH 
+  t1 AS (
+    /* Get total sales by reps by region */
+    SELECT 
+      s.name rep_name, 
+      r.name region_name, 
+      SUM(o.total_amt_usd) total_amt
+    FROM sales_reps s
+    JOIN accounts a
+    ON a.sales_rep_id = s.id
+    JOIN orders o
+    ON o.account_id = a.id
+    JOIN region r
+    ON r.id = s.region_id
+    GROUP BY 1,2
+    ORDER BY 3 DESC), 
+  t2 AS (
+    /* Get max sales by region */
+    SELECT 
+      region_name, 
+      MAX(total_amt) total_amt
+    FROM t1
+    GROUP BY 1)
+/* Get rep, region, and total sales */
+SELECT t1.rep_name, t1.region_name, t1.total_amt
+FROM t1
+JOIN t2
+/* Join the two tables only when the region matches and */
+ON t1.region_name = t2.region_name 
+  /* the total sales is equal to the max sales (which will only be true for one sales rep in each region */
+  AND t1.total_amt = t2.total_amt;
+
+```
+2. For the region with the largest sales total_amt_usd, how many total orders were placed?
+
+My solution is slightly different from the suggested solution. I'm only joining on the total sales equaling the max total sales. I think this might create a problem when 2 or more regions are tied for total or max total sales. I'm basically using the ON clause as though it was a HAVING clause. It's a bit simpler to read, because the outer query is very straightforward.
+```sql
+with 
+  t1 as (
+    -- Get the total sales and total orders by region
+    select 
+      r.name region_name, 
+      sum(o.total_amt_usd) total_amt,
+      count(o.id) as order_count
+    from region r
+    join sales_reps sr
+    on sr.region_id = r.id
+    join accounts a
+    on a.sales_rep_id = sr.id
+    join orders o
+    on o.account_id = a.id
+    group by 1
+  ),
+  t2 as ( 
+    -- Get the highest total sales figure
+    select max(total_amt) max_total
+    from t1
+  )
+-- Get the total sales by region
+select 
+  region_name,
+  order_count
+from t1
+join t2
+-- Filter to the one region that has the highest total sales
+on t1.total_amt = t2.max_total
+```
+
+This is the suggested solution below. 
+```sql
+WITH t1 AS (
+   SELECT r.name region_name, SUM(o.total_amt_usd) total_amt
+   FROM sales_reps s
+   JOIN accounts a
+   ON a.sales_rep_id = s.id
+   JOIN orders o
+   ON o.account_id = a.id
+   JOIN region r
+   ON r.id = s.region_id
+   GROUP BY r.name), 
+t2 AS (
+   SELECT MAX(total_amt)
+   FROM t1)
+SELECT r.name, COUNT(o.total) total_orders
+FROM sales_reps s
+JOIN accounts a
+ON a.sales_rep_id = s.id
+JOIN orders o
+ON o.account_id = a.id
+JOIN region r
+ON r.id = s.region_id
+GROUP BY r.name
+HAVING SUM(o.total_amt_usd) = (SELECT * FROM t2);
+```
+In this solution, t1 only gets region name and total sales. It doesn't get a count of orders. T2 is identical to my t2. Then, in the outer query, this solution gets the region name and the count of orders. That means we have to go through the sequence of joins again, but we never join tables t1 or t2. Instead, we get total orders by region name and then use a HAVING clause to tell the query to filter down sum(total_amt_usd) = (select * from t2). This is interesting, because the outer query is no dependent on t1 directly at any point, only on t2 in the HAVING clause.
+
+3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
+
+Rephrase: In the end we just want a number - the number of accounts that meet a certain condition. The condition is having total purchases of any type of paper (in terms I think of quantity, not spending) greater than another account. That other account is the account that has bought the most standard paper over its lifetime. So, we'll have to compare how much (of any type of paper) was purchased by a bunch of accounts to how much (just standard paper) was purchased by this other account, and filter out the ones that bought less.
+
+```sql
+with 
+  t1 as (
+    select
+      a.id a_id,
+      a.name account_name,
+      sum(o.standard_qty) total_qty_standard,
+      sum(o.standard_qty) + sum(o.gloss_qty) + sum(o.poster_qty) as total_qty_all
+    from accounts a
+    join orders o
+    on o.account_id = a.id
+    group by 1,2
+  ),
+  t2 as (
+    select max(total_qty_standard) max_total
+    from t1
+  )
+-- What they want is a number here, but I'm going to list out the accounts and the quantities of paper. It would be easy to just do a count of the names.
+select
+  account_name,
+  total_qty_all
+from t1
+join t2
+on t1.total_qty_all > t2.max_total
+```
+Once again, the suggested answer is a bit different. In my solution, I create two subquery and JOIN them in the outer query with an ON clause that contains the condition. Event though it provides the correct answer, I think mine is probably wrong, but it's very readable to me, which is why I like it. Anyway, the suggested solution uses t1 to get the account with the greatest purchase quantity of standard paper, along with that figure and also the figure for total purchases. It uses t2 to get the account names of the accounts HAVING sum(o.total) > (select total_std from t1). Then in the outer query, it gets the count of those accounts to give the answer. You have to do it this way in this solution. I tried removing the outer query and just doing the count in t2 and I couldn't get that to work.
+
+```sql
+WITH 
+  t1 AS (
+	-- this query gets the one account with the greatest quantity of standard paper purchased, and also the total paper it purchased
+    SELECT 
+      a.name account_name, 
+      SUM(o.standard_qty) total_std, 
+      SUM(o.total) total -- woops, forgot this existed
+    FROM accounts a
+    JOIN orders o
+    ON o.account_id = a.id
+    GROUP BY 1
+    -- get rid of the whole max() part
+    ORDER BY 2 DESC
+    LIMIT 1
+  ), 
+  t2 AS (
+	-- this query gets accounts for which total quantity of all paper types purchased is greater than t1.total_std
+    SELECT a.name
+    FROM orders o
+    JOIN accounts a
+    ON a.id = o.account_id
+    GROUP BY 1
+    HAVING SUM(o.total) > (SELECT total_std FROM t1)
+  )
+-- Finally, the outer query gets a count of accounts in t2
+SELECT COUNT(*)
+FROM t2;
+```
+
+**PLEASE NOTE**: The suggested solution has a typo that I've corrected here. In the course the HAVING clause accidentally uses "total" instead of "total_std". This results in an incorrect answer of 3. The correct answer is 6.
+
+4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
+```sql
+with 
+  t1 as (
+    -- Get id, name and total sales for the top spending account
+    select 
+      a.id as account_id
+      a.name as account_name
+      sum(o.total_amt_usd) as total_sales
+    from accounts a
+    join orders o
+    on o.account_id = a.id
+    group by 1 
+    order by 2 desc
+    limit 1
+)
+-- Get total events by channel
+select 
+  we.channel, 
+  count(*) events
+from web_events we
+group by 1
+having we.account_id = (select account_id from t1)
+```
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+```sql
+with x as (
+  select x
+  from x
+)
+select x
+from x
+```
+6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders.
+```sql
+with x as (
+  select x
+  from x
+)
+select x
+from x
+```
+
