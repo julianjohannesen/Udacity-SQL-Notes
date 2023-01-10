@@ -1121,12 +1121,28 @@ order by 2 desc
 limit 10
 ```
 6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders.
+
+Rephase: What was the average amount spend by companies that spent more per order than the average spending on an order overall
+  - Need average cost of orders
+
 ```sql
-with x as (
-  select x
-  from x
-)
-select x
-from x
+WITH 
+  t1 AS (
+    -- Get the average spending per order, overall
+    SELECT 
+      AVG(total_amt_usd) avg_all
+    FROM orders),
+  t2 AS (
+    -- Get the average spending per order, grouped by account
+    SELECT 
+      account_id, 
+      AVG(total_amt_usd) avg_amt
+    FROM orders
+    GROUP BY 1
+    -- only include accounts for which their average spending per order is greater than overall spending per order
+    HAVING AVG(total_amt_usd) > (SELECT * FROM t1))
+-- Get the average of the averages but only for the accounts that passed the condition in t2
+SELECT AVG(avg_amt)
+FROM t2;
 ```
 
