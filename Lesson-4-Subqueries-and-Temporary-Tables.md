@@ -1146,3 +1146,78 @@ SELECT AVG(avg_amt)
 FROM t2;
 ```
 
+### Nested Subqueries
+
+A nested subquery is a subquery placed in the WHERE clause of another query. They're useful when a user wants to filter output using a condition met from another table.
+
+Here's an example:
+```sql
+SELECT *
+FROM students
+WHERE student_id
+IN (
+    SELECT DISTINCT student_id
+    FROM gpa_table
+    WHERE gpa>3.5
+   );
+```
+
+### Inline Subqueries
+
+An inline subquery is a subquery placed in the FROM clause of another query. They're useful when a user needs a pseduo table to aggregate or manipulate an existing table within a larger query. They're similar to WITH clauses, but not as helpful for readability.
+
+Here's an example:
+```sql
+SELECT 
+  dept_name,
+  max_gpa
+FROM 
+  department_db x,
+  (
+    SELECT 
+      dept_id
+      MAX(gpa) as max_gpa
+    FROM students
+    GROUP BY dept_id
+  ) y
+WHERE x.dept_id = y.dept_id
+ORDER BY 1;
+```
+
+### Scalar Subqueries
+
+A scalar subquery is placed in the SELECT clause of another query. They're useful when you want to return on column and one row from a query. They're performant and also useful when the data set is small. If a scalar subquery does not find a match, it returns NULL. If a scalar subquery finds multiple matches, it returns an error.
+
+Here's an example:
+```sql
+SELECT 
+  (SELECT MAX(salary) FROM employees_db) AS top_salary,
+  employee_name
+FROM employees_db;
+```
+
+### Conclusion
+
+Subquery Facts to Know:
+- Commonly used as a filter/aggregation tool
+- Commonly used to create a “temporary” view that can be queried off
+- Commonly used to increase readability
+- Can stand independently
+
+### Lesson 4 Key Terms
+
+- Correlated - Subquery	The inner subquery is dependent on the larger query.
+- CTE	- Common Table Expression in SQL allows you to define a temporary result, such as a table, to then be referenced in a later part of the query.
+- Inline	- This subquery is used in the same fashion as the WITH use case above. However, instead of the temporary table sitting on top of the larger query, it’s embedded within the from clause.
+- Joins Dependencies - Cannot stand independently.
+Joins Output	A joint view of multiple tables stitched together using a common “key”.
+- Joins Use Case	- Fully stitch tables together and have full flexibility on what to “select” and “filter from”.
+- Nested	This subquery is used when you’d like the temporary table to act as a filter within the larger query, which implies that it often sits within the where clause.
+- Scalar	- This subquery is used when you’d like to generate a scalar value to be used as a benchmark of some sort.
+- Simple Subquery	The inner subquery is completely independent of the larger query.
+- SQL Views	- Virtual tables that are derived from one or more base tables. The term virtual means that the views do not exist physically in a database, instead, they reside in the memory (not database), just like the result of any query is stored in the memory.
+- Subquery	- A SQL query where one SQL query is nested within another query
+- Subquery Dependencies	- Stand independently and be run as complete queries themselves.
+- Subquery Output	- Either a scalar (a single value) or rows that have met a condition.
+- Subquery Use Case	- Calculate a scalar value to use in a later part of the query (e.g., average price as a filter).
+- With	- This subquery is used when you’d like to “pseudo-create” a table from an existing table and visually scope the temporary table at the top of the larger query
