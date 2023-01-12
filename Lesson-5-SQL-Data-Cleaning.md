@@ -236,4 +236,37 @@ select
 from sf_crime_data
 ```
 
+### POSITION and STRPOS
+
+1. Use the accounts table to create first and last name columns that hold the first and last names for the primary_poc.
+
+```SQL
+select 
+	substr(primary_poc, 1, (position(' ' in primary_poc)-1)) as first,
+    substr(primary_poc, (position(' ' in primary_poc)+1)) as last
+from accounts a
+```
+
+2. Now see if you can do the same thing for every rep name in the sales_reps table. Again provide first and last name columns.
+
+```sql
+select 
+	substr(name, 1, (position(' ' in name)-1)) as first,
+    substr(name, (position(' ' in name)+1)) as last
+from sales_reps sr
+```
+
+The suggested solutions are a little different. Both use LENGTH, which we have not covered:
+```sql
+SELECT 
+    LEFT(primary_poc, STRPOS(primary_poc, ' ') -1 ) first_name, 
+    RIGHT(primary_poc, LENGTH(primary_poc) - STRPOS(primary_poc, ' ')) last_name
+FROM accounts;
+
+
+SELECT 
+    LEFT(name, STRPOS(name, ' ') -1 ) first_name, 
+    RIGHT(name, LENGTH(name) - STRPOS(name, ' ')) last_name
+FROM sales_reps;
+```
 
