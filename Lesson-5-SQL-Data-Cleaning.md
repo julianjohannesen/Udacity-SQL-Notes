@@ -32,7 +32,7 @@ Here are the methods:
 - Left: Extracts a number of characters from a string starting from the left
 - Right: Extracts a number of characters from a string starting from the right
 - Substr: Extracts a substring from a string (starting at any position)
-- Position: Returns the position of the first occurrence of a substring in a string
+- Position: Returns the position of the first occurrence of a substring in a string, e.g. POSITION("$" IN student_information) as salary_starting_position
 - Strpos: Returns the position of a substring within a string
 - Concat: Adds two or more expressions together, e.g. CONCAT(month, '-', day, '-', year) AS date
 - Cast: Converts a value of any type into a specific, different data type, e.g. CAST(salary AS int)
@@ -46,6 +46,8 @@ Methods:
 - LEFT(string, number_of_characters)
 - RIGHT(string, number_of_characters)
 - SUBSTR(string, start, number_of_characters)
+- POSITION(substring IN string)
+- STRPOS()
 
 #### Use Case: When two or more columns serve as a unique identifier
 
@@ -56,6 +58,19 @@ Methods:
 
 Methods:
 - Cast(expression AS datatype)
+
+### Table of Functions
+
+| Function | Description                                                             | Syntax                                  | Returns                                                                                                                                    | Example                                    |
+|----------|-------------------------------------------------------------------------|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| left     | Extracts a number of characters from a string starting from the left    | left(string, num_characters)            | A new string starting at the first character and continuing to num_characters to the left, inclusive                                       |                                            |
+| right    | Extracts a number of characters from a string starting from the right   | right(string, num_characters)           | A new string starting at the last character and continuing to num_characters to the right, inclusive                                       |                                            |
+| substr   | Extracts a substring from a string (starting at any position)           | substr(string, start, num_characters)   | A new string starting from start and continuing to num_characters, inclusive.                                                              |                                            |
+| position | Returns the position of the first occurrence of a substring in a string | position(substring IN string)           | A new string if substring is found or 0, unless the value is NULL, in which case NULL.                                                     | POSITION("$" IN student_info) AS salary    |
+| strpos   | Returns the position of a substring within a string                     | strpos(substring IN string)             | A new string if substring is found or 0, unless the value is NULL, in which case NULL.                                                     |                                            |
+| concat   | Adds two or more expressions together                                   | concat(string1, string2, ...)           | A new string. NULL values are ignored, unless using \|\| operator in which case anything concatenated with a NULL value will return NULL.  | CONCAT(month, '-', day, '-', year) AS date |
+| cast     | Converts a value of any type into a specific, different data type       | cast(expression AS datatype)            | An expression of the new type. If the expression cannot be converted to the target type, PostgreSQL will raise an error.                   | CAST(salary AS int)                        |
+| coalesce | Returns the first non-null value in a list                              | coalesce(expression1, expression2, ...) | The first argument that is not null. If all arguments are null, returns null.                                                              |                                            |
 
 ### LEFT and RIGHT Quiz
 
