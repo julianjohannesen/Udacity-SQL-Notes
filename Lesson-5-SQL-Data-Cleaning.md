@@ -47,7 +47,7 @@ Methods:
 - RIGHT(string, number_of_characters)
 - SUBSTR(string, start, number_of_characters)
 - POSITION(substring IN string)
-- STRPOS()
+- STRPOS(string, substring)
 
 #### Use Case: When two or more columns serve as a unique identifier
 
@@ -59,7 +59,14 @@ Methods:
 Methods:
 - Cast(expression AS datatype)
 
+#### Use Case: If there are multiple columns that have a combination of null and non-null values and the user needs to extract the first non-null value, you can use the coalesce function.
+
+Methods:
+- Coalesce(value1, value2, value3, ...)
+
 ### Table of Functions
+
+This is even better: https://www.postgresql.org/docs/8.1/functions-string.html
 
 | Function | Description                                                             | Syntax                                  | Returns                                                                                                                                    | Example                                    |
 |----------|-------------------------------------------------------------------------|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
@@ -67,10 +74,10 @@ Methods:
 | right    | Extracts a number of characters from a string starting from the right   | right(string, num_characters)           | A new string starting at the last character and continuing to num_characters to the right, inclusive                                       |                                            |
 | substr   | Extracts a substring from a string (starting at any position)           | substr(string, start, num_characters)   | A new string starting from start and continuing to num_characters, inclusive.                                                              |                                            |
 | position | Returns the position of the first occurrence of a substring in a string | position(substring IN string)           | A new string if substring is found or 0, unless the value is NULL, in which case NULL.                                                     | POSITION("$" IN student_info) AS salary    |
-| strpos   | Returns the position of a substring within a string                     | strpos(substring IN string)             | A new string if substring is found or 0, unless the value is NULL, in which case NULL.                                                     |                                            |
+| strpos   | Returns the position of a substring within a string                     | strpos(string, substring)             | A new string if substring is found or 0, unless the value is NULL, in which case NULL.                                                     |                                            |
 | concat   | Adds two or more expressions together                                   | concat(string1, string2, ...)           | A new string. NULL values are ignored, unless using \|\| operator in which case anything concatenated with a NULL value will return NULL.  | CONCAT(month, '-', day, '-', year) AS date |
 | cast     | Converts a value of any type into a specific, different data type       | cast(expression AS datatype)            | An expression of the new type. If the expression cannot be converted to the target type, PostgreSQL will raise an error.                   | CAST(salary AS int)                        |
-| coalesce | Returns the first non-null value in a list                              | coalesce(expression1, expression2, ...) | The first argument that is not null. If all arguments are null, returns null.                                                              |                                            |
+| coalesce | Returns the first non-null value in a list                              | coalesce(expression1, expression2, ...) | The first argument that is not null. If all arguments are null, returns null.                                                              | COALESCE(hourly_wage * 40 * 52, salary, commission * sales) AS annual_income                                           | 
 
 ### LEFT and RIGHT Quiz
 
@@ -168,7 +175,7 @@ FROM    table
 PIVOT(
         MAX(VALUE)
         FOR row_number IN([1],[2],[3],[4],[5])
-) AS PVT)
+) AS PVT
 ```
 What this query does is create a pivot table from the student_db table. It uses some concepts that haven't been covered yet.
 
@@ -269,4 +276,149 @@ SELECT
     RIGHT(name, LENGTH(name) - STRPOS(name, ' ')) last_name
 FROM sales_reps;
 ```
+### Problems for CONCAT and STRPOS
+
+1. Each company in the accounts table wants to create an email address for each primary_poc. The email address should be the first name of the primary_poc . last name primary_poc @ company name .com.
+
+```sql
+select
+	primary_poc,
+    -- could do this quickly with REPLACE()
+    -- replace(name, ' ', '.')
+	concat(
+      	left(primary_poc, (strpos(primary_poc, ' ')-1)),
+      	'.',
+      	substr(primary_poc, (strpos(primary_poc, ' ')+1)), 
+        '@', 
+        replace(name, ' ', ''), 
+        '.com'
+      ) as email
+from accounts
+```
+
+2. You may have noticed that in the previous solution some of the company names include spaces, which will certainly not work in an email address. See if you can create an email address that will work by removing all of the spaces in the account name, but otherwise, your solution should be just as in question 1. Some helpful documentation is here.
+
+See answer to 1 above.
+
+3. We would also like to create an initial password, which they will change after their first log in. The first password will be the first letter of the primary_poc's first name (lowercase), then the last letter of their first name (lowercase), the first letter of their last name (lowercase), the last letter of their last name (lowercase), the number of letters in their first name, the number of letters in their last name, and then the name of the company they are working with, all capitalized with no spaces.
+
+```sql
+select
+	primary_poc,
+	concat(
+		-- first letter of the primary_poc's first name (lowercase),
+		lower(left(primary_poc, 1)),
+		-- then the last letter of their first name (lowercase), 
+		substr(primary_poc, strpos(primary_poc, ' ')-1, 1),
+		-- the first letter of their last name (lowercase),
+		lower(substr(primary_poc, strpos(primary_poc, ' ')+1, 1)),
+		-- the last letter of their last name (lowercase), 
+		right(primary_poc, 1),
+		-- the number of letters in their first name, 
+		length(substr(primary_poc, 1, strpos(primary_poc, ' ')-1)),
+		-- the number of letters in their last name, 
+		length(substr(primary_poc, strpos(primary_poc, ' ')+1)),
+		-- and then the name of the company they are working with, all capitalized with no spaces
+		replace(upper(name), ' ', '')
+	) as temp_password
+from accounts
+```
+
+### Dealing with NULL values
+
+The three methods below are the most common ways to deal with null values in SQL:
+
+1. Coalesce: Allows you to return the first non-null value across a set of columns in a slick, single command. This is a good approach only if a single column’s value needs to be extracted whilst the rest are null.
+
+2. Drop records: Sometimes, if there are null values in records at all, analysts can decide to drop the row entirely. This is not favorable, as it removes data. Data is precious. Think about the reason those values are null. Does it make sense to use COALESCE, drop records, and conduct an imputation.
+
+3. Imputation: Outside of the COALESCE use case, you may want to impute missing values. If so, think about the problem you are trying to solve, and impute accordingly. Perhaps you’d like to be conversative so you take the MIN of that column or the 25th percentile value. Classic imputation values are often the median or mean value of the column.
+
+### COALESCE problems
+
+1. Use COALESCE to fill in the accounts.id column with the account.id for the NULL value for the table created by this query:
+
+```sql
+SELECT *
+FROM accounts a
+LEFT JOIN orders o
+ON a.id = o.account_id
+WHERE o.total IS NULL;
+```
+
+Solution:
+```sql
+SELECT 
+    -- you don't need 2 a.id arguments here
+    -- you only need 1. i think using 2 here
+    -- just makes it more confusing
+    COALESCE(a.id, a.id) filled_id, 
+    a.name, 
+    a.website, 
+    a.lat, 
+    a.long, 
+    a.primary_poc, 
+    a.sales_rep_id, 
+    o.*
+FROM accounts a
+LEFT JOIN orders o
+ON a.id = o.account_id
+WHERE o.total IS NULL;
+```
+
+2. Use COALESCE to fill in the orders.account_id column with the account.id for the NULL value for the table created by the query in question 1.
+
+```sql
+select 
+    a.*
+    coalesce(o.account_id, a.id) as filled_account_id
+    -- other orders columns go here
+from accounts a
+left join orders o
+on a.id = o.account_id
+where o.total is null;
+```
+
+3. Still referring to the table creatred by the query in question 1, fill in the order table's columns with either data from the order, if it exists, or with a 0.
+
+```sql
+SELECT 
+    COALESCE(a.id, a.id) filled_id, 
+    -- other accounts columns go here
+    COALESCE(o.account_id, a.id) account_id, 
+    o.occurred_at, 
+    COALESCE(o.standard_qty, 0) standard_qty, 
+    COALESCE(o.gloss_qty,0) gloss_qty, 
+    COALESCE(o.poster_qty,0) poster_qty, 
+    COALESCE(o.total,0) total, 
+    COALESCE(o.standard_amt_usd,0) standard_amt_usd, 
+    COALESCE(o.gloss_amt_usd,0) gloss_amt_usd, 
+    COALESCE(o.poster_amt_usd,0) poster_amt_usd, 
+    COALESCE(o.total_amt_usd,0) total_amt_usd
+FROM accounts a
+LEFT JOIN orders o
+ON a.id = o.account_id
+WHERE o.total IS NULL;
+```
+
+### Lesson Overview
+In this lesson you learned to :
+
+- Clean and re-structure messy data.
+- Convert columns to different data types.
+- Manipulate NULLs with some handy tricks.
+
+Data Cleaning Steps
+
+1. Review the problem statement.
+2. What data do you have? What data do you need?
+3. How will you adjust existing data or create new columns?
+4. Leverage cleaning techniques to manipulate data.
+5. Leverage analysis techniques to determine the solution.
+
+**Normalization**: Standardizing or “cleaning up a column” by transforming it in some way to make it ready for analysis. A few normalization techniques are below:
+
+- Adjusting a column that includes multiple currencies to one common currency
+- Adjusting the varied distribution of a column value by transforming it into a z-score
+- Converting all price into a common metric (e.g., price per ounce)
 
