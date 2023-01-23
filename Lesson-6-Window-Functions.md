@@ -318,3 +318,119 @@ So, for example, looking at row 28, we can see that account 1001 has
 - the smallest order was 85 units
 - the largest order was 566 units.
 
+### The Three Types of Ranking Functions
+
+- Row_number(): Ranking is distinct amongst records even with ties in what the table is ranked against.
+- Rank(): Ranking is the same amongst tied values and ranks skip for subsequent values.
+- Dense_rank(): Ranking is the same amongst tied values and ranks do not skip for subsequent values.
+
+### Examples of Ranking
+
+row_number()
+```sql
+SELECT ROW_NUMBER() OVER(ORDER BY date_time) AS rank,
+       date_time
+FROM   db;
+```
+rank()
+```sql
+SELECT RANK() OVER(ORDER BY date_time) AS rank,
+       date_time
+FROM   db;
+```
+dense_rank()
+```sql
+SELECT DENSE_RANK() OVER(ORDER BY date_time) AS rank,
+       date_time
+FROM   db;
+```
+
+#### Problems for rank()
+
+1. Select the id, account_id, and total variable from the orders table, then create a column called total_rank that ranks this total amount of paper ordered (from highest to lowest) for each account using a partition. Your final table should have these four columns.
+
+```sql
+select
+	id,
+    account_id,
+    total,
+    row_number() over (
+      partition by account_id
+      order by total desc 
+    ) as total_rank
+from orders o
+```
+
+### Aliases
+
+Aliases allow you to use the same OVER, PARTITION BY  and   ORDER BY clauses multiple times. For example:
+```sql
+SELECT 
+  order_id,
+  order_total,
+  order_price,
+  SUM(order_total) OVER monthly_window AS running_monthly_sales,
+  COUNT(order_id) OVER monthly_window AS running_monthly orders,
+  AVG(order_price) OVER monthly_window AS average_monthly_price
+FROM   amazon_sales_db
+WHERE  order_date < '2017-01-01'
+WINDOW monthly_window AS
+  (
+    PARTITION BY month(order_date) 
+    ORDER BY order_date
+  );
+```
+
+An example from our Parch and Posey database:
+```sql
+SELECT id,
+       account_id,
+       DATE_TRUNC('year',occurred_at) AS year,
+       DENSE_RANK() OVER account_year_window AS dense_rank,
+       total_amt_usd,
+       SUM(total_amt_usd) OVER account_year_window AS sum_total_amt_usd,
+       COUNT(total_amt_usd) OVER account_year_window AS count_total_amt_usd,
+       AVG(total_amt_usd) OVER account_year_window AS avg_total_amt_usd,
+       MIN(total_amt_usd) OVER account_year_window AS min_total_amt_usd,
+       MAX(total_amt_usd) OVER account_year_window AS max_total_amt_usd
+FROM orders
+window account_year_window as
+  (
+    PARTITION BY account_id 
+    ORDER BY DATE_TRUNC('year',occurred_at)
+  );
+```
+
+### LAG and LEAD Window Functions
+
+The LAG and LEAD windows functions allow you to compare a current row with values from a previous row (LAG) or a following row (LEAD). 
+
+You can specify an optional offset for which previous or subsequent row you want. For example, you can get a value from a row that was 3 rows previous or 2 rows subsequent to the current row.
+
+An ORDER BY clause is required when working with LEAD and LAG functions, but a PARTITION BY clause is optional.
+
+Here's the general form for both LAG and LEAD:
+
+```sql
+LAG(expression [,offset [,default_value]]) 
+OVER (
+    [PARTITION BY partition_expression, ... ]
+    ORDER BY sort_expression [ASC | DESC], ...
+)
+```
+
+Here's an example using LAG:
+
+```sql
+SELECT 
+  account_id,
+  standard_sum,
+  LAG(standard_sum) OVER (ORDER BY standard_sum) AS lag,
+  standard_sum - LAG(standard_sum) OVER (ORDER BY standard_sum) AS lag_difference
+FROM (
+  SELECT account_id,
+  SUM(standard_qty) AS standard_sum
+  FROM orders 
+  GROUP BY 1
+) sub
+```
