@@ -482,3 +482,113 @@ SELECT occurred_at,
 ) sub
 ```
 
+### Percentiles
+
+When there are a large number of records that need to be ranked, individual ranks (e.g., 1, 2, 3, 4…) are ineffective in helping teams determine the best of the distribution from the rest. Percentiles help better describe large datasets. For example, a team might want to reach out to the Top 5% of customers.
+
+You can use window functions to identify what percentile (or quartile, or any other subdivision) a given row falls into. The syntax is NTILE(# of buckets). In this case, ORDER BY determines which column to use to determine the quartiles (or whatever number of ‘tiles you specify).
+
+Here's the general form:
+```sql
+NTILE(# of buckets) OVER (
+  ORDER BY ranking_column
+  ) AS new_column_name
+```
+
+The following components are important to consider when building a query with percentiles:
+
+- NTILE + the number of buckets you’d like to create within a column (e.g., 100 buckets would create traditional percentiles, 4 buckets would create quartiles, etc.)
+- OVER
+- ORDER BY (optional, typically a date column) 
+- AS + the new column name
+
+Expert Tip: 
+In cases with relatively few rows in a window, the NTILE function doesn’t calculate exactly as you might expect. For example, If you only had two records and you were measuring percentiles, you’d expect one record to define the 1st percentile, and the other record to define the 100th percentile. Using the NTILE function, what you’d actually see is one record in the 1st percentile, and one in the 2nd percentile.
+
+In other words, when you use an NTILE function but the number of rows in the partition is less than the NTILE(number of groups), then NTILE will divide the rows into as many groups as there are members (rows) in the set but then stop short of the requested number of groups. If you’re working with very small windows, keep this in mind and consider using quartiles or similarly small bands.
+
+Here's an example:
+
+```sql
+SELECT  customer_id,
+        composite_score,
+        NTILE(100) OVER(ORDER BY composite_score) AS percentile
+FROM    customer_lead_score;
+```
+
+### Percentile Problems
+
+You can use partitions with percentiles to determine the percentile of a specific subset of all rows. Imagine you're an analyst at Parch & Posey and you want to determine the largest orders (in terms of quantity) a specific customer has made to encourage them to order more similarly sized large orders. You only want to consider the NTILE for that customer's account_id.
+
+1. Use the NTILE functionality to divide the accounts into 4 levels in terms of the amount of standard_qty for their orders. Your resulting table should have the account_id, the occurred_at time for each order, the total amount of standard_qty paper purchased, and one of four levels in a standard_quartile column.
+
+You might think that the questions is asking for a quartile that shows you whether a certain order was in a certain quartile for all order of standard paper. But don't forget that first pararaph in the section. We want quartiles within in a company (not overall), so that we can encourage them to make orders that are larger relative to their orders only! 
+
+I added a subquery so that I could account for any case where a company place more than one order for standard paper on the same day.
+
+```sql
+select
+	account_id,
+    occurred_at,
+    sum_standard,
+	ntile(4) over (
+    -- partition by company so that quartiles are within a company
+      partition by account_id
+      order by sum_standard
+      ) as standard_quartile
+from (
+	select 
+  		account_id,
+  		occurred_at,
+  		sum(standard_qty) as sum_standard
+  	from orders
+  	group by 1,2
+) as sub
+group by 1,2,3
+order by 1 desc
+```
+
+2. Use the NTILE functionality to divide the accounts into two levels in terms of the amount of gloss_qty for their orders. Your resulting table should have the account_id, the occurred_at time for each order, the total amount of gloss_qty paper purchased, and one of two levels in a gloss_half column.
+
+```sql
+select
+	account_id,
+  occurred_at,
+  sum_gloss,
+	ntile(2) over (
+    -- partition by company so that percentiles are within a company
+      partition by account_id
+      order by sum_gloss
+      ) as two_tier
+from (
+	select 
+  		account_id,
+  		occurred_at,
+  		sum(gloss_qty) as sum_gloss
+  	from orders
+  	group by 1,2
+) as sub
+group by 1,2,3
+-- In the solution they order by account_id DESC for this one
+order by 1 desc
+```
+
+3. Use the NTILE functionality to divide the orders for each account into 100 levels in terms of the amount of total_amt_usd for their orders. Your resulting table should have the account_id, the occurred_at time for each order, the total amount of total_amt_usd paper purchased, and one of 100 levels in a total_percentile column.
+
+No subquery this time.
+
+```sql
+select
+	account_id,
+  occurred_at,
+  total_amt_usd,
+	ntile(100) over (
+    -- partition by company so that percentiles are within a company
+      partition by account_id
+      order by total_amt_usd
+      ) as percentiles
+from orders
+group by 1,2,3
+-- In the solution they order by account_id DESC for this one
+order by 1 desc
+```
