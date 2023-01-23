@@ -403,9 +403,9 @@ window account_year_window as
 
 ### LAG and LEAD Window Functions
 
-The LAG and LEAD windows functions allow you to compare a current row with values from a previous row (LAG) or a following row (LEAD). 
+The LAG and LEAD functions are positional window functions. They allow you to compare a current row with values from a previous row (LAG) or a subsequent row (LEAD). 
 
-You can specify an optional offset for which previous or subsequent row you want. For example, you can get a value from a row that was 3 rows previous or 2 rows subsequent to the current row.
+In their simplest form, these functions get the adjacent row above or below the current row. You can specify an optional offset for which previous or subsequent row you want. For example, you can get a value from a row that was 3 rows previous or 2 rows subsequent to the current row.
 
 An ORDER BY clause is required when working with LEAD and LAG functions, but a PARTITION BY clause is optional.
 
@@ -434,3 +434,51 @@ FROM (
   GROUP BY 1
 ) sub
 ```
+
+In this example, we use a derived table (aka a common table expression or CTE) in the FROM clause and give it an alias of sub. The derived table gets the sum of all standard quantity paper orders from the order table, grouped by account_id. Note that we could also get just a partition of the total sum, e.g. the annual sum or the sum for specified date range.
+
+Then in the outer query, we get the account_id, standard_sum, and our lag and lag difference derived columns.
+
+In lag, we specify that we want standard_sum, and that we want it ordered by standard_sum.
+
+In lag_difference, we specify that we want the difference between standard_sum and lag. We can't use the alias, however. We have to use the full expression.
+
+The result looks like this:
+
+![lag query result](/assets/lag-query-example.png)
+
+### Problem for LAG/LEAD
+
+Compare how the current order's total revenue ("total" meaning from sales of all types of paper) compares to the next order's total revenue.
+
+If there were only one total_amt_usd per order date, we could solve this problem without a subquery like this:
+
+```sql
+select  
+	occurred_at,
+    total_amt_usd,
+    lead(total_amt_usd) over (order by occurred_at) as lead,
+	lead(total_amt_usd) over (order by occurred_at) - total_amt_usd as lead_difference
+from orders
+group by 1,2
+order by occurred_at
+```
+
+However, there are dates on which there is more than one order, and that means that we will need to aggregate or sum up those total order amounts, like this:
+
+```sql
+SELECT occurred_at,
+       total_amt_usd,
+       -- We're intesrested in the sum of totals spent, but 
+       -- we want to order by date
+       LEAD(total_amt_usd) OVER (ORDER BY occurred_at) AS lead,
+       LEAD(total_amt_usd) OVER (ORDER BY occurred_at) - total_amt_usd AS lead_difference
+FROM (
+SELECT occurred_at,
+      -- sum up the total order amounts from multiple orders on the same day
+       SUM(total_amt_usd) AS total_amt_usd
+  FROM orders 
+ GROUP BY 1
+) sub
+```
+
