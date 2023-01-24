@@ -1,6 +1,8 @@
 ## Lesson 7: SQL Advanced Joins and Performance Tuning
 
-### Full Outer Join
+### Join Types and the Full Outer Join
+
+For all of these, the table on the left side of the diagram is Table A and the one on the right is Table B.
 
 #### Inner Join
 
@@ -10,6 +12,7 @@ SELECT column_name(s)
 FROM Table_A
 INNER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
+
 ![Inner Join](/assets/inner-join.png)
 
 #### Left Join General Form
@@ -20,15 +23,28 @@ SELECT column_name(s)
 FROM Table_A
 LEFT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
+
 ![Left Join](/assets/left-join.png)
 
 #### Right Join General Form
 
 When you want to include unmatched records from the right table.
 ```sql
-
+SELECT column_name(s)
+FROM Table_A
+RIGHT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
+
 ![Right Join](/assets/right-join.png)
 
-#### Inner Join
+#### Full Outer Join
+
+When you want to include unmatched records from both tables.
+```sql
+SELECT column_name(s)
+FROM Table_A
+FULL OUTER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
+```
+
+![Full Outer](/assets/full-outer-join.png)
 
