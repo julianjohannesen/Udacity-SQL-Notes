@@ -158,3 +158,47 @@ Back to the problem. What is a our filting condition? In this case, our filterin
 
 Because we're doing a left join in the solution query and because we're not doing any filtering on accounts, we'll see all 351 accounts. However, we may not see all 50 sales reps. Some sales reps may be filtered out by our filting condtions. And, in fact, that is the case. If we had done a right join, rather than a left join, we would see that there are sales reps who do not have any accounts that meet the filtering conditions we imposed. Akila Drinkard, for example, has 3 accounts, but she doesn't have any accounts that meet our filtering conditions. All of her points of contact have names that appear later in the alphabet than her name.
 
+### Self Joins
+
+A "self join" is a join between a table and itself.
+
+One of the most common use cases for self JOINs is in cases where two events occurred, one after another.
+
+Using inequalities in conjunction with self JOINs is common.
+
+#### Problem: Find the accounts that have ever made multiple orders within a 30 day period. Also show all of the occassions on which this occurred. Use a left join of the orders table to itself so that we can also see occassions on which an order does not have a matching order within 30 days. Show order id, account id, and occurred at for both tables o1 and o2.
+
+```sql
+SELECT o1.id AS o1_id,
+       o1.account_id AS o1_account_id,
+       o1.occurred_at AS o1_occurred_at,
+       o2.id AS o2_id,
+       o2.account_id AS o2_account_id,
+       o2.occurred_at AS o2_occurred_at
+FROM   orders o1
+LEFT JOIN orders o2
+ON     o1.account_id = o2.account_id
+-- The second order occurred later than the first order
+AND    o2.occurred_at > o1.occurred_at
+-- But also occurred earlier than 28 days after the first order
+AND    o2.occurred_at <= o1.occurred_at + INTERVAL '28 days'
+ORDER BY o1.account_id, o1.occurred_at
+```
+
+There are only 2,550 orders out of the total 6,912 orders that were ordered by the same account within 30 days of an earlier order. But we see all of the orders, due to the left join from orders o1 to orders o2. The orders that do not have a matching subsequent order within 30 days really stand out if you re-order by o1_id, because you'll see nulls in the o2 id, o2 account id, and o2 occurred at columns.
+
+You could turn this into a slightly different challenge: How many accounts have ever placed more than one order for paper in the same 30 day period?
+
+```sql
+SELECT COUNT(DISTINCT o1_account_id)
+FROM (
+	SELECT o1.account_id AS o1_account_id
+	FROM orders o1
+	JOIN orders o2
+	ON   o1.account_id = o2.account_id
+	AND  o2.occurred_at > o1.occurred_at
+	AND  o2.occurred_at <= o1.occurred_at + INTERVAL '28 days'
+) AS sub
+```
+
+We get a count of distinct occurrences of o1_account_id and put the previous solution into a derived table in the FROM clause. In the derived table, we don't need to select anything other than the o1_account_id. But we do need that one, because we're counting distinct instances of it in the outer query.
