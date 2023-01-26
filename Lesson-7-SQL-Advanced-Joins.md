@@ -187,7 +187,7 @@ ORDER BY o1.account_id, o1.occurred_at
 
 There are only 2,550 orders out of the total 6,912 orders that were ordered by the same account within 30 days of an earlier order. But we see all of the orders, due to the left join from orders o1 to orders o2. The orders that do not have a matching subsequent order within 30 days really stand out if you re-order by o1_id, because you'll see nulls in the o2 id, o2 account id, and o2 occurred at columns.
 
-You could turn this into a slightly different challenge: How many accounts have ever placed more than one order for paper in the same 30 day period?
+#### Problem: You could turn this into a slightly different challenge: How many accounts have ever placed more than one order for paper in the same 30 day period?
 
 ```sql
 SELECT COUNT(DISTINCT o1_account_id)
@@ -202,3 +202,168 @@ FROM (
 ```
 
 We get a count of distinct occurrences of o1_account_id and put the previous solution into a derived table in the FROM clause. In the derived table, we don't need to select anything other than the o1_account_id. But we do need that one, because we're counting distinct instances of it in the outer query.
+
+#### Problem: Find all of the web events that occurred after, but not more than 1 day after, another web event. Add a column for the channel variable in both instances of the table in your query.
+
+```sql
+select
+    we1.channel as we1_channel,
+    we1.occurred_at as earlier,
+    we2.channel as we2_channel,
+    we2.occurred_at as later
+from web_events we1
+left join web_events we2
+on we1.account_id = we2.account_id
+and we1.occurred_at < we2.occurred_at
+and we2.occurred_at < we1.occurred_at + interval '24 hours'
+```
+
+### Unions
+
+The UNION operator is used to combine the result sets of 2 or more SELECT statements. It removes duplicate rows between the various SELECT statements.
+
+#### Use Cases
+
+**When a user wants to pull together distinct values of specified columns that are spread across multiple tables.** 
+
+For example, a chef wants to pull together the ingredients and respective aisle across three separate meals that are maintained within different tables.
+
+Or, say you want to determine all reasons students are late. Currently, student information is maintained in one table, but each late reason is maintained within tables corresponding to the grade the student is in. The table with the students' information needs to be appended with the late reasons. It requires no aggregation or filter, but all duplicates need to be removed. So the final use case is the one where the UNION operator makes the most sense.
+
+#### Details of UNION
+
+Each SELECT statement within the UNION must have the same number of fields in the result sets with similar data types.
+
+- There must be the same number of expressions in both SELECT statements.
+- The corresponding expressions must have the same data type in the SELECT statements. For example, Expression1 must be the same data type in both the first and second SELECT statement.
+- The columns do NOT need to have the same names, but they usually do.
+- UNION only appends DISTINCT rows. Duplicates are removed. UNION ALL appends all rows. You'll usually use UNION ALL.
+
+Here's an example.
+
+Run this first, to create a view:
+```sql
+CREATE VIEW web_events_2
+AS (SELECT * FROM web_events)
+```
+
+Now run this:
+```sql
+SELECT *
+FROM web_events
+UNION
+SELECT *
+FROM web_events_2
+```
+
+You should see all 9,073 rows that the two tables have in common.
+
+Another example, this time using UNION ALL, and reusing the view we created above:
+
+```sql
+SELECT *
+FROM web_events
+WHERE channel = 'facebook'
+UNION ALL
+SELECT *
+FROM web_events_2
+```
+
+You should see 10,040 rows with the first thousand or so rows showing only "facebook" results from web_events_1 and the remaining rows showing all results from web_events_2.
+
+You can use a UNION inside a subquery like this:
+
+```sql
+SELECT channel,
+       COUNT(*) AS sessions
+FROM (
+      SELECT *
+      FROM web_events
+      UNION ALL
+      SELECT *
+      FROM web_events_2
+     ) web_events
+GROUP BY 1
+ORDER BY 2 DESC
+```
+Or you can put it in a common table expression (CTE) like this:
+
+```sql
+WITH web_events AS (
+      SELECT *
+      FROM web_events
+      UNION ALL
+      SELECT *
+      FROM web_events_2
+     )
+SELECT channel,
+       COUNT(*) AS sessions
+FROM  web_events
+GROUP BY 1
+ORDER BY 2 DESC
+```
+
+You should see a table of channels and the count of each channel, but with twice the counts that you would see wihout the UNION ALL.
+
+### Performance Tuning
+
+One way to make a query run faster is to reduce the number of calculations that need to be performed. Some of the high-level things that will affect the number of calculations a given query will make include:
+
+- Table size
+- Joins
+- Aggregations
+
+Query runtime is also dependent on some things that you can’t really control related to the database itself:
+
+- Other users running queries concurrently on the database
+- Database software and optimization (e.g., Postgres is optimized differently than Redshift)
+
+#### Tip 1: Reduce table size
+
+Try to run your queries on only a subset of your data. This called "exploratory analysis." Many query editors do this automatically. 
+
+Aggregations: When aggregations appear in the main query, they can really sloq down your query. However, you can create a subset of your data by creating a subquery. The subquery will run first. Then you aggregate on that subquery.
+
+For example:
+
+```sql
+SELECT account_id,
+        -- Aggregations are expensive!
+       SUM(poster_qty) AS sum_poster_qty
+       -- So, create a subquery and limit the result rows
+       -- The subquery runs first, before the aggregation in the outer query
+FROM   (SELECT * FROM orders LIMIT 100) sub
+-- The filter will run on the subquery results before the aggregation
+WHERE  occurred_at >= '2016-01-01'
+AND    occurred_at < '2016-07-01'
+GROUP BY 1
+-- Note that using LIMIT here will not help you, because the aggregation
+-- will happen before the limit is applied to any results. LIMIT does help
+-- When you're just selecting and displaying columns.
+```
+
+#### Tip 2: Reduce the complexity of tables before JOINing them
+
+Reduce the complexity of tables by:
+- reducing size of tables or subqueries before joining them
+- performing aggregations on smaller tables first, before joining them. 
+
+For example:
+
+```sql
+SELECT 
+    a.name,
+    sub.web_events
+-- Use derived table to count web_events rather than joining web_events and accounts and then doing the count
+FROM (
+    SELECT 
+        account_id,
+        COUNT(*) AS web_events
+    FROM web_events
+    GROUP BY 1
+    ) AS sub
+JOIN accounts a 
+ON a.id = sub.account_id
+ORDER BY 2 DESC
+```
+

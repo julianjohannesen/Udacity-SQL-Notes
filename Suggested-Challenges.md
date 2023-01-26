@@ -27,3 +27,5 @@ Suggested by others:
 8. https://datalemur.com/questions/user-retention
 9. https://datalemur.com/questions/yoy-growth-rate
 10. https://www.hackerrank.com/challenges/occupations/problem
+11. https://datalemur.com/questions/prime-warehouse-storage
+12. 
