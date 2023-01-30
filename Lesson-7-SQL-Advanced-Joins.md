@@ -441,5 +441,5 @@ ON orders.date = web_events.date
 ORDER BY 1 DESC
 ```
 
-I think the main lesson is that you should try breaking large queries into components 
+I think the main lesson is that you should try breaking large queries into components and see if the result runs faster than a single large query.
 
