@@ -367,3 +367,79 @@ ON a.id = sub.account_id
 ORDER BY 2 DESC
 ```
 
+#### Tip 3: Use EXPLAIN
+
+Adding the command EXPLAIN at the beginning of any query allows you to get a sense of how long it will take your query to run. This will output a Query Plan which outlines the execution order of the query. The query plan will attach a cost to the query and the higher the cost, the longer the runtime. EXPLAIN is most useful to identify and modify those steps that are expensive. Do this then run EXPLAIN again to see if the speed/cost has improved.
+
+```sql
+EXPLAIN
+SELECT *
+FROM   web_events
+WHERE  occurred_at >='2016-01-01'
+AND    occurred_at < '2016-02-01'
+LIMIT 100
+```
+
+![Query Plan Example](/assets/query-plan-example.png)
+
+#### Tip 4: Aggregate over subqueries that you then join
+
+Below is an imaginary dashboard showing lots of metrics. The query took around 90 - 110 ms to run on my machine. If we weren't aggregating, we'd get 79,000 + rows of data. This is in part because we're joining web events to orders on 'day'. This join causes a lot of duplication, which is why it's important to do the aggregation over distinct occurrences of each item, which adds more time to the calculation.
+
+```sql
+SELECT DATE_TRUNC('day', o.occurred_at) AS date,
+       COUNT(DISTINCT a.sales_rep_id) AS active_sales_reps,
+       COUNT(DISTINCT o.id) AS orders,
+       COUNT(DISTInct we.id) AS web_visits
+FROM   accounts a
+JOIN   orders o
+ON     o.account_id = a.id
+JOIN   web_events we
+-- Join web events on the day that an event occurred equaling the day that an order occurred
+ON     DATE_TRUNC('day', we.occurred_at) = DATE_TRUNC('day', o.occurred_at)
+-- group by order date day
+GROUP BY 1
+-- and order by order date day
+ORDER BY 1 DESC
+```
+
+But there's a much faster way to do this, which is by aggregating over subqueries and then joining those subqueries. The final result is a bit different in the query below than in the query above, but the instructor didn't seem to think it really mattered in this case. The query below takes 50-80 ms on my machine.
+
+Here's the subquery version of the query:
+
+```sql
+
+SELECT 
+    -- get either order date or if that's null, get web event date
+    COALESCE(orders.date, web_events.date) AS date,
+    -- get active sales reps
+    orders.active_sales_reps,
+    -- get count of orders
+    orders.orders,
+    -- get count of web events
+    web_events.web_visits
+/* A derived table that joins the accounts and orders tables to provide a table of order date, count of sales reps, and count of orders. */
+FROM(  
+   SELECT DATE_TRUNC('day', o.occurred_at) AS date,
+          COUNT(DISTINCT a.sales_rep_id) AS active_sales_reps,
+          COUNT(DISTINCT o.id) AS orders
+   FROM   accounts a
+   JOIN   orders o
+   ON     o.account_id = a.id
+   GROUP BY 1) AS orders
+-- Join the derived 'orders' table to the 'web_events' subquery
+FULL JOIN
+/* The subquery gets date of web event and count of web events. */
+(
+   SELECT DATE_TRUNC('day', we.occurred_at) AS date,
+          COUNT(we.id) AS web_visits
+   FROM   web_events we
+   GROUP BY 1) AS web_events
+-- Join on date
+ON orders.date = web_events.date
+-- order by date
+ORDER BY 1 DESC
+```
+
+I think the main lesson is that you should try breaking large queries into components 
+
