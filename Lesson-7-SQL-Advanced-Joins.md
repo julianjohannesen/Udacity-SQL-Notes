@@ -445,6 +445,8 @@ I think the main lesson is that you should try breaking large queries into compo
 
 ### Glossary of Key Terms
 
+Don't forget that you'll need a good markdown viewer to view markdown tables.
+
 | KeyTerm                           | Definition                                                                                                                                                                                                                                               |   |   |   |
 |-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|---|---|
 | Aggregates                        | Aggregate functions that are used in window functions, too (e.g., sum, count, avg).                                                                                                                                                                      |   |   |   |
