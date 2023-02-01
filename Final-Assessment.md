@@ -1,4 +1,7 @@
 ## Final Assessment
+
+[The information below is about the final assessment for Bertelsmann Scholars at the end of phase 1 of Udacity's Programming for Data Science with Python Nanodegree program. More information is available here: https://www.udacity.com/course/programming-for-data-science-nanodegree--nd104]
+
 Here is what you need to know about the Final Assessment:
 
 
