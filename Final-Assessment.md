@@ -1,9 +1,8 @@
 ## Final Assessment
 
-[The information below is about the final assessment for Bertelsmann Scholars at the end of phase 1 of Udacity's Programming for Data Science with Python Nanodegree program. More information is available here: https://www.udacity.com/course/programming-for-data-science-nanodegree--nd104]
+[The information below is about the final assessment for Bertelsmann Scholars at the end of phase 1 of Udacity's Programming for Data Science with Python Nanodegree program. You can learn more about the Nanodegree here: https://www.udacity.com/course/programming-for-data-science-nanodegree--nd104 and more about the scholarship program here: https://www.udacity.com/bertelsmann-tech-scholarships]
 
 Here is what you need to know about the Final Assessment:
-
 
 The Final Assessment will be opened on Feb 20 at 00:00 am CET for all learners, and will close on Feb 21 at 11:59pm CET. There will be no other dates available to sit for the assessment.
 
