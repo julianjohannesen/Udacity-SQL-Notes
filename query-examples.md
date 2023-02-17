@@ -97,7 +97,7 @@ This is interesting because when we look at all 50 rows we can immediately see t
 ## 5. Create a table of order price by account by region for all orders. Show region name, account name, and total price columns. Order by region and then account name.
 
 ```sql
-select region.name as region_name, accounts.name as account_name, orders.total as total_order_price
+select region.name as region_name, accounts.name as account_name, orders.total_amt_usd as total_order_price
 from region
 join sales_reps
 on region.id = sales_reps.region_id
@@ -111,11 +111,12 @@ order by 1,2
 Answer (first 5 of 6,912 rows)
 region_name	| account_name | total_order_price
 -|-|-
-Midwest	|Abbott Laboratories	|1312
-Midwest	|Abbott Laboratories	|1508
-Midwest	|Abbott Laboratories	|1343
-Midwest	|Abbott Laboratories	|823
-Midwest	|Abbott Laboratories	|1342
+Midwest	|Abbott Laboratories	|8721.7
+Midwest	|Abbott Laboratories	|10355.08
+Midwest	|Abbott Laboratories	|8825.7
+Midwest	|Abbott Laboratories	|5047.28
+Midwest	|Abbott Laboratories	|8877.01
+
 
 
 ## 6. Create a table of total order cost by account by region for all accounts.
