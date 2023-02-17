@@ -181,3 +181,19 @@ Ayesha Monica	|Northeast	|Anthem
 Ayesha Monica	|Northeast	|Cisco Systems
 Cliff Meints	|Midwest	|Aflac
 
+## 9. How many times has "Cognizant Technology Solutions" visit Parch & Posey via adwords?
+
+```sql
+select a.name, we.channel, count(*)
+from accounts a 
+join web_events we
+on we.account_id = a.id
+where a.name like 'Cog%' and we.channel like 'ad%'
+group by 1,2
+```
+
+Answer
+name|channel|count
+-|-|-
+Cognizant Technology Solutions	|adwords	|1
+
