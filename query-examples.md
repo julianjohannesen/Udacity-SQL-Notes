@@ -181,7 +181,7 @@ Ayesha Monica	|Northeast	|Anthem
 Ayesha Monica	|Northeast	|Cisco Systems
 Cliff Meints	|Midwest	|Aflac
 
-## 9. How many times has "Cognizant Technology Solutions" visit Parch & Posey via adwords?
+## 9. How many times has "Cognizant Technology Solutions" visited Parch & Posey via adwords?
 
 ```sql
 select a.name, we.channel, count(*)
@@ -196,4 +196,25 @@ Answer
 name|channel|count
 -|-|-
 Cognizant Technology Solutions	|adwords	|1
+
+## 10. Which web event channels has Walmart used?
+
+```sql
+select distinct a.name, we.channel
+from web_events we
+join accounts a
+on we.account_id = a.id
+where a.name = 'Walmart'
+```
+
+Answer
+name|channel
+-|-
+Walmart	|adwords
+Walmart	|banner
+Walmart	|direct
+Walmart	|facebook
+Walmart	|organic
+Walmart	|twitter
+
 
