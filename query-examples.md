@@ -118,7 +118,7 @@ Midwest	|Abbott Laboratories	|823
 Midwest	|Abbott Laboratories	|1342
 
 
-## 6. Create a table of order price by account by region for all accounts.
+## 6. Create a table of total order cost by account by region for all accounts.
 
 ```sql
 select region.name as region_name, accounts.name as account_name, sum(orders.total) as total_orders_cost
@@ -142,7 +142,7 @@ Midwest	|Aflac |21024
 Midwest	|Alcoa	|3778
 Midwest	|Altria Group |21887
 
-## 7. Use a right join to create a table that shows the name of the one account that does not have any orders in the orders table. The table should show the name of the account and the orders total for that account (NULL in this case).
+## 7. Use a left or right join to create a table that shows the name of the one account that does not have any orders in the orders table. The table should show the name of the account and the orders total for that account (NULL in this case).
 
 ```sql
 select a.name, o.total
@@ -158,4 +158,24 @@ name | total
 -|-
 Goldman Sachs Group	| NULL
 
-## 8. 
+## 8. Create a table that shows sales reps whose last name starts with "M" and show their region and all associated accounts.
+
+```sql
+select sr.name as sales_rep, r.name as region_name, a.name as account
+from sales_reps sr
+join accounts a
+on a.sales_rep_id = sr.id
+join region r
+on sr.region_id = r.id
+where sr.name like '% M%'
+order by 1,2,3
+```
+
+Answer (first 5 of 28 rows):
+sales_rep | region_name	| account
+-|-|-
+Ayesha Monica	|Northeast	|AmerisourceBergen
+Ayesha Monica	|Northeast	|Anthem
+Ayesha Monica	|Northeast	|Cisco Systems
+Cliff Meints	|Midwest	|Aflac
+
