@@ -121,7 +121,7 @@ Midwest	|Abbott Laboratories	|1342
 ## 6. Create a table of total order cost by account by region for all accounts.
 
 ```sql
-select region.name as region_name, accounts.name as account_name, sum(orders.total) as total_orders_cost
+select region.name as region_name, accounts.name as account_name, sum(orders.total_amt_usd) as total_orders_cost
 from region
 join sales_reps
 on region.id = sales_reps.region_id
@@ -136,11 +136,12 @@ order by 1,2
 Answer (first 5 of 350 rows)
 region_name	| account_name | total_orders_cost
 -|-|-
-Midwest	|Abbott Laboratories |14707
-Midwest	|AbbVie	|1725
-Midwest	|Aflac |21024
-Midwest	|Alcoa	|3778
-Midwest	|Altria Group |21887
+Midwest	|Abbott Laboratories	|96819.92
+Midwest	|AbbVie	|11243.63
+Midwest	|Aflac	|117862.77
+Midwest	|Alcoa	|19882.16
+Midwest	|Altria Group	|116165.15
+
 
 ## 7. Use a left or right join to create a table that shows the name of the one account that does not have any orders in the orders table. The table should show the name of the account and the orders total for that account (NULL in this case).
 
