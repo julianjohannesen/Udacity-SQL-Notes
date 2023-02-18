@@ -263,12 +263,27 @@ select
       		'-',
       		substr(date, 1, 2),
       		'-',
-      		substr(date, 4, 2)--,
-            -- I tried to add in the time, but it doesn't seem to work
-      		--'T',
-      		--substr(date, 12, 9)
+      		substr(date, 4, 2)
     		) 
      	AS DATE)
+from sf_crime_data
+```
+
+Another solution is using `::` instead of `cast()` function
+
+`::` is used to convert a string into a date data type
+	
+```sql
+select 
+	date,
+      	concat(
+      		substr(date, 7, 4),
+      		'-',
+      		substr(date, 1, 2),
+      		'-',
+      		substr(date, 4, 2)
+    	) 
+     	:: DATE
 from sf_crime_data
 ```
 
