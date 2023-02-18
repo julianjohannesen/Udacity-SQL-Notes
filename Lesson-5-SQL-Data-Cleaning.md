@@ -155,6 +155,20 @@ from (
     ) t1
 ```
 
+Another way to solve it
+
+```sql
+select sum(vowel) as vowles, count(*) - sum(vowel) as others
+from(
+  select name,
+      case
+          when left(upper(name),1) in ('A','E','I','O','U') 
+	  then 1 else 0
+      end as vowel   
+  from accounts
+ ) as t
+```
+
 ### BONUS CONCEPT
 This is an advanced example:
 ```sql
