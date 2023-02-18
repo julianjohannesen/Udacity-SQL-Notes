@@ -220,6 +220,21 @@ select
 from accounts a
 ```
 
+Another way to solve this
+	
+```sql
+select 
+    a.name as account_name, 
+    concat(lat, long) as coordinate, 
+    concat(
+            left(primary_poc, 1), 
+            right(primary_poc, 1), 
+            '@', 
+            replace(website, 'www.','')
+            ) as poc_email_id
+from accounts a
+```
+
 3. From the web_events table, display the concatenated value of account_id, '_' , channel, '_', count of web events of the particular channel.
 
 ```sql
