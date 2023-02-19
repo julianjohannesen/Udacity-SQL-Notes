@@ -306,3 +306,23 @@ Answer:
 l_mid|	r_mid|	l_total_amt_usd|	r_total_amt_usd|	median
 -|-|-|-|-
 3456|	3457|	2482.55|	2483.16|	2482.855
+
+## 13. What was the smallest order in terms of cost, placed by each account?
+
+```sql
+select a.name, min(o.total_amt_usd)
+from accounts a
+join orders o on o.account_id = a.id
+group by 1
+order by 2
+```
+
+Answer (first 5 of 350 rows):
+name|min
+-|-
+Disney|0
+Chevron|0
+Twenty-First Century Fox|0
+Reynolds American|0
+Navistar International|0
+
