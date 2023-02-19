@@ -13,7 +13,8 @@ FROM Table_A
 INNER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Inner Join](/assets/inner-join.png =250x250)
+
+<img src="/assets/inner-join.png" width="250" height="150">
 
 #### Left Join General Form
 
@@ -24,7 +25,8 @@ FROM Table_A
 LEFT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Left Join](/assets/left-join.png =250x250)
+
+<img src="/assets/left-join.png" width="250" height="150">
 
 #### Right Join General Form
 
@@ -35,7 +37,8 @@ FROM Table_A
 RIGHT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Right Join](/assets/right-join.png =250x250)
+
+<img src="/assets/right-join.png" width="250" height="150">
 
 #### Full Outer Join
 
@@ -46,7 +49,8 @@ FROM Table_A
 FULL OUTER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Full Outer](/assets/full-outer-join.png =250x250)
+
+<img src="/assets/full-outer-join.png" width="250" height="150">
 
 FULL JOIN is commonly used in conjunction with aggregations to understand the amount of overlap between two tables.
 
@@ -60,7 +64,8 @@ FULL OUTER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 WHERE Table_A.column_name IS NULL OR Table_B.column_name IS NULL
 ```
 
-![Full outer join with nulls only](/assets/full-outer-join-if-null.png =250x250)
+
+<img src="/assets/full-outer-join-if-null.png" width="250" height="150">
 
 #### Problems for Full Outer Join
 
