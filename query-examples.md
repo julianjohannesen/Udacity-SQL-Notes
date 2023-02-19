@@ -217,4 +217,19 @@ Walmart	|facebook
 Walmart	|organic
 Walmart	|twitter
 
+## 11. Who placed the most recent order?
+
+```sql
+select accounts.name, orders.occurred_at
+from accounts
+join orders
+on orders.account_id = accounts.id
+where orders.occurred_at = (select max(orders.occurred_at) from orders)
+```
+
+Answer:
+name|	occurred_at
+-|-
+W.W. Grainger|	1/2/2017 0:02
+
 
