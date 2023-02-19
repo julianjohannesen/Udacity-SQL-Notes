@@ -220,6 +220,7 @@ Walmart	|twitter
 ## 11. Who placed the most recent order?
 
 ```sql
+-- this took about 36ms on my machine
 select accounts.name, orders.occurred_at
 from accounts
 join orders
@@ -227,9 +228,81 @@ on orders.account_id = accounts.id
 where orders.occurred_at = (select max(orders.occurred_at) from orders)
 ```
 
+You can solve this without a subquery like this:
+
+```sql
+-- this also took about 36ms, but randomly sometimes took as long as 50ms
+select accounts.name, orders.occurred_at
+from accounts
+join orders
+on orders.account_id = accounts.id
+order by 2 desc
+limit 1
+```
+
 Answer:
 name|	occurred_at
 -|-
 W.W. Grainger|	1/2/2017 0:02
 
+## 12. Find the median (not mean) total_amt_usd spent on all orders.
 
+This solution uses Tom Chan's solution for finding the median value, regardless of the number of orders in the orders table. I've annotated it below, because it's a quite advanced.
+
+```sql
+SELECT 
+    a.l_mid,
+    a.r_mid,
+    b.total_amt_usd AS l_total_amt_usd,
+    c.total_amt_usd AS r_total_amt_usd,
+    -- This is where we get our median. The subqueries below allow us to get these two numbers, so that we can add them and then divide by 2.
+    (b.total_amt_usd + c.total_amt_usd)*1.0/2 AS MEDIAN
+FROM 
+/* We want the two middle values for our column of orders, whatever number of orders we have. */
+(SELECT
+    /* We want the "left mid value" which is the value 3456, given that we have 6912 orders */
+	CASE
+        -- if the number of orders is even, ...
+        -- (fyi, count(1) returns the total count of orders, 6912)
+        -- (fyi, x%2=0 is only true when x is an even number)
+		WHEN COUNT(1)%2=0 
+        -- then simply divide total number of orders by 2
+		THEN COUNT(1)/2
+        -- otherwise, add 1 to the total number of orders to make it even, and then divide by 2
+		ELSE (COUNT(1)+1)/2 
+	END AS l_mid,
+    /* We want the "right mid value" which is the value 3457, given that we have 6912 orders */
+    CASE
+        -- if the number of orders is even, ...
+		WHEN COUNT(1)%2=0 
+        -- then divide the total number of orders by 2 and add 1 to the result
+		THEN COUNT(1)/2+1 
+        -- otherwise, add 1 to the total number of orders to make it even, and then divide by 2
+		ELSE (COUNT(1)+1)/2 
+	END AS r_mid
+FROM orders) AS a
+JOIN
+/* We want to assign a row number to each order total cost for every one of our 6912 orders, but we want the orders to be in order from smallest value to largest value. Thus, row number 1 would 0 and row number 6912 would be  232,207.07 */
+(SELECT 
+    total_amt_usd, 
+    -- (fyi, ROW_NUMBER() is a window function that assigns a number to each row in the query’s result set)
+    -- (fyi, we don't need a partition because we want all 6912 orders to be considered)
+    -- (fyi, we do need an order by clause because we want the orders in order from smallest to largest value)
+    ROW_NUMBER() OVER(ORDER BY total_amt_usd) AS rn 
+FROM orders) AS b
+-- Join a and b on the condition that the left mid value is equal to the row number. This gives us the order price that is in row 3456, which is 2482.55
+ON a.l_mid=b.rn
+JOIN
+/* This is the exact same subquery as b */
+(SELECT 
+    total_amt_usd, 
+    ROW_NUMBER() OVER(ORDER BY total_amt_usd) AS rn 
+FROM orders) AS c
+-- Join a and c on the condition that the right mid value is equal to the row number. This gives us the order price that is in the row 3457, which is 2483.16
+ON a.r_mid=c.rn 
+```
+
+Answer:
+l_mid|	r_mid|	l_total_amt_usd|	r_total_amt_usd|	median
+-|-|-|-|-
+3456|	3457|	2482.55|	2483.16|	2482.855
