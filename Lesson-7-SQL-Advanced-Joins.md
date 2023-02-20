@@ -85,7 +85,8 @@ on a.sales_rep_id = sr.id
 
 ### Joins with Inequalities
 
-First, lets find all of the orders that occurred during the first month that there were orders. We can do this with a subquery in the WHERE clause. 
+First, lets return all the orders that occurred in the first month as Parch and Poseys first ever order. We can do this with a subquery in the WHERE clause. 
+ 
 
 ```sql
 select *
