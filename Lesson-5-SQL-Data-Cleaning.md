@@ -155,6 +155,20 @@ from (
     ) t1
 ```
 
+Another way to solve it
+
+```sql
+select sum(vowel) as vowles, count(*) - sum(vowel) as others
+from(
+  select name,
+      case
+          when left(upper(name),1) in ('A','E','I','O','U') 
+	  then 1 else 0
+      end as vowel   
+  from accounts
+ ) as t
+```
+
 ### BONUS CONCEPT
 This is an advanced example:
 ```sql
@@ -206,6 +220,21 @@ select
 from accounts a
 ```
 
+Another way to solve this
+	
+```sql
+select 
+    a.name as account_name, 
+    concat(lat, long) as coordinate, 
+    concat(
+            left(primary_poc, 1), 
+            right(primary_poc, 1), 
+            '@', 
+            replace(website, 'www.','')
+            ) as poc_email_id
+from accounts a
+```
+
 3. From the web_events table, display the concatenated value of account_id, '_' , channel, '_', count of web events of the particular channel.
 
 ```sql
@@ -234,12 +263,27 @@ select
       		'-',
       		substr(date, 1, 2),
       		'-',
-      		substr(date, 4, 2)--,
-            -- I tried to add in the time, but it doesn't seem to work
-      		--'T',
-      		--substr(date, 12, 9)
+      		substr(date, 4, 2)
     		) 
      	AS DATE)
+from sf_crime_data
+```
+
+Another solution is using `::` instead of `cast()` function
+
+`::` is used to convert a string into a date data type
+	
+```sql
+select 
+	date,
+      	concat(
+      		substr(date, 7, 4),
+      		'-',
+      		substr(date, 1, 2),
+      		'-',
+      		substr(date, 4, 2)
+    	) 
+     	:: DATE
 from sf_crime_data
 ```
 
