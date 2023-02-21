@@ -604,12 +604,15 @@ FROM orders
 ```
 
 However, we can avoid this error by using a case clause.
+
 ```sql
-SELECT id, account_id,
-   case when standard_qty = 0  or standard_qty is null then 0 
-         else standard_amt_usd/standard_qty end AS unit_price
-FROM orders
-LIMIT 10;
+select id, account_id,
+  	case 
+   		when standard_qty = 0  or standard_qty is null 
+   		then 0 
+        else standard_amt_usd/standard_qty 
+   	end as unit_price
+from orders
 ```
 
 Here's another example. Say you want to create a column to identify whether a record is within a certain total quantity range. 
