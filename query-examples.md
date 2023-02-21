@@ -347,5 +347,21 @@ IBM|	326819.48
 General Dynamics|	300694.79
 Republic Services|	293861.14
 
+## 15. Which sales rep has the most accounts?
 
+```sql
+select sr.name, count(*) as number_of_accounts
+from sales_reps sr
+join accounts a
+on sr.id = a.sales_rep_id
+group by 1
+having count(*) > 5
+order by 2 desc
+limit 1
+```
+
+Answer:
+name|number_of_accounts
+-|-
+"Georgianna Chisholm"	|15
 
