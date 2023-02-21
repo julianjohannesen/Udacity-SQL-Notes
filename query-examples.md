@@ -326,3 +326,26 @@ Twenty-First Century Fox|0
 Reynolds American|0
 Navistar International|0
 
+## 14. Which accounts have total sales greater than $250,000?
+
+```sql
+select a.name, sum(o.total_amt_usd)
+from accounts a
+join orders o
+on o.account_id = a.id
+group by 1
+having sum(o.total_amt_usd) >= 250000
+order by 2 desc
+```
+
+Answer (first 5 of 14):
+name|sum
+-|-
+EOG Resources|	382873.3
+Mosaic|	345618.59
+IBM|	326819.48
+General Dynamics|	300694.79
+Republic Services|	293861.14
+
+
+
