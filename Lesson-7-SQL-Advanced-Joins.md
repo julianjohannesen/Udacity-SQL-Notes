@@ -13,7 +13,8 @@ FROM Table_A
 INNER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Inner Join](/assets/inner-join.png)
+
+<p align="center"><img src="/assets/inner-join.png" width="250" height="150" class="centerImage"></p>
 
 #### Left Join General Form
 
@@ -24,7 +25,8 @@ FROM Table_A
 LEFT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Left Join](/assets/left-join.png)
+
+<p align="center"><img src="/assets/left-join.png" width="250" height="150"></p>
 
 #### Right Join General Form
 
@@ -35,7 +37,8 @@ FROM Table_A
 RIGHT JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Right Join](/assets/right-join.png)
+
+<p align="center"><img src="/assets/right-join.png" width="250" height="150"></p>
 
 #### Full Outer Join
 
@@ -46,7 +49,8 @@ FROM Table_A
 FULL OUTER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 ```
 
-![Full Outer](/assets/full-outer-join.png)
+
+<p align="center"><img src="/assets/full-outer-join.png" width="250" height="150"></p>
 
 FULL JOIN is commonly used in conjunction with aggregations to understand the amount of overlap between two tables.
 
@@ -60,7 +64,8 @@ FULL OUTER JOIN Table_B ON Table_A.column_name = Table_B.column_name;
 WHERE Table_A.column_name IS NULL OR Table_B.column_name IS NULL
 ```
 
-![Full outer join with nulls only](/assets/full-outer-join-if-null.png)
+
+<p align="center"><img src="/assets/full-outer-join-if-null.png" width="250" height="150"></p>
 
 #### Problems for Full Outer Join
 
@@ -80,7 +85,8 @@ on a.sales_rep_id = sr.id
 
 ### Joins with Inequalities
 
-First, lets find all of the orders that occurred during the first month that there were orders. We can do this with a subquery in the WHERE clause. 
+First, lets return all the orders that occurred in the first month as Parch and Poseys first ever order. We can do this with a subquery in the WHERE clause. 
+ 
 
 ```sql
 select *
